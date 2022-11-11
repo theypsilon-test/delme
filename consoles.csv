@@ -1,3 +1,34 @@
-conf str name, url,
-NES, NES_MiSTer, Is this a comment?
-SNES, SNES_MiSTer,
+Folder (conf_str or setname),Repository Name
+Arcadia,Arcadia_MiSTer
+Astrocade,Astrocade_MiSTer
+ATARI7800,Atari7800_MiSTer
+AtariLynx,AtariLynx_MiSTer
+AVision,AdventureVision_MiSTer
+AY-3-8500,AY-3-8500-MiSTer
+Casio_PV-1000,Casio_PV-1000_MiSTer
+ChannelF,ChannelF_MiSTer
+Coleco,ColecoVision_MiSTer
+CreatiVision,CreatiVision_MiSTer
+Gamate,Gamate_MiSTer
+GAMEBOY,Gameboy_MiSTer
+GAMEBOY2P,Gameboy_MiSTer/tree/Gameboy2P
+GameNWatch,GnW_MiSTer
+GBA,GBA_MiSTer
+GBA2P,GBA_MiSTer/tree/GBA2P
+Genesis,Genesis_MiSTer
+Intellivision,Intv_MiSTer
+MegaCD,MegaCD_MiSTer
+NEOGEO,NeoGeo_MiSTer
+NES,NES_MiSTer
+ODYSSEY2,Odyssey2_MiSTer
+PokemonMini,PokemonMini_MiSTer
+PSX,PSX_MiSTer
+S32X,S32X_MiSTer
+SGB,SGB_MiSTer
+SMS,SMS_MiSTer
+SNES,SNES_MiSTer
+SuperVision,SuperVision_MiSTer
+TGFX16,TurboGrafx16_MiSTer
+VC4000,VC4000_MiSTer
+VECTREX,Vectrex_MiSTer
+WonderSwan,WonderSwan_MiSTer
