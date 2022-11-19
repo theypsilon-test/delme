@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 
 from github import Github, UnknownObjectException
-from git import Repo
 from threading import Thread
 import os
 import time
@@ -10,6 +9,18 @@ import tempfile
 import shutil
 import subprocess
 import shlex
+from dataclasses import dataclass
+from typing import Any, List
+from subprocess import Popen, run
+
+class Repo:
+    name: str
+    url: str
+    path: str
+    branch: str
+    result: int = None
+    process: Popen[bytes] = None
+
 
 g = Github(os.environ['GITHUB_TOKEN'], pool_size=100)
 
@@ -17,10 +28,7 @@ def main():
 
     start = time.time()
 
-    result_queue = queue.Queue()
-    job_queue = queue.Queue()
-
-    processes = []
+    repos = []
     
     repo_count = 0
     for repo in g.get_user('MiSTer-devel').get_repos():
@@ -29,47 +37,48 @@ def main():
         if lower_name in ('distribution_mister', 'downloader_mister') or not lower_name.endswith('mister') or 'linux' in lower_name or 'sd-install' in lower_name:
             continue
 
-        branch=''
+        branch = ''
         repo_url = repo.ssh_url.replace('git@github.com:', 'https://github.com/')
-        repo_path = subprocess.run(['mktemp', '-d'], shell=False, stderr=subprocess.STDOUT, stdout=subprocess.PIPE).stdout.decode()
-        print(repo_path)
-        processes.append(subprocess.Popen(['bash', '.github/download_repository.sh', repo_path, repo_url, branch], shell=False, stderr=subprocess.STDOUT))
 
-    count = 0
-    while count < len(processes):
-        for p in processes:
-            result = p.poll()
-            if result is not None:
-                count += 1
-                print(result)
+        repos.append(Repo(name=repo.name, path=repo_path, url=repo_url, branch=branch))
+
+    for _ in enumerate(5):
+        process_repos(repos)
+        if repos_downloaded(repos):
+            break
+    
+    if not repos_downloaded(repos):
+        raise Exception('Some repos didnt download.')
 
     print("Time:")
     end = time.time()
     print(end - start)
     print()
 
-def run(text):
-    pass
+def process_repos(all_repos: List[Repo]):
+    repos = {repo for repo in all_repos if repo.result != 0}
+    for repo in repos:
+        repo.process = Popen(['bash', '.github/download_repository.sh', repo.path, repo.url, repo.branch], shell=False, stderr=subprocess.STDOUT)
 
-def thread_worker(i, job_queue, result_queue):
-    print('Thread %s started!' % i)
-    try:
-        while not job_queue.empty():
-            repo_path, repo_https_url = job_queue.get(False)
-            for result in list_repository_files(repo_path, repo_https_url):
-                result_queue.put(result, False)
-            job_queue.task_done()
-    except Exception as e:
-        result_queue.put(error(e))
-        return
+    count = 0
+    while count < len(repos):
+        for repo in repos:
+            if repo.process is None:
+                continue
 
-    result_queue.put(None, False)
+            result = repo.process.poll()
+            if result is not None:
+                count += 1
+                repo.result = result
+                repo.process = None
 
-def error(e):
-    return {'error': e}
-
-def is_error(e):
-    return isinstance(e, dict) and e.get('error') is not None
+def repos_downloaded(repos: List[Repo]):
+    for repo in repos:
+        if repo.result != 0:
+            print('Repo %s didnt download' % repo.name)
+            return False
+    
+    return True
 
 def list_repository_files(repo_path, repo_https_url):
     shutil.rmtree(repo_path, ignore_errors=True)
