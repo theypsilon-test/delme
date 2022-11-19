@@ -30,7 +30,7 @@ def main():
             continue
 
         branch=''
-        repo_url = repo.ssh_url.replace('git@github.com:', 'https://github.com/')
+        repo_url = subprocess.run(['mktemp', '-d'], shell=False, stderr=subprocess.STDOUT, stdout=subprocess.PIPE).stdout.decode()
         print(repo_path)
         processes.append(subprocess.Popen(f'\
     rm -rf {repo_path} || true ;\
