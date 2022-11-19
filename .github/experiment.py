@@ -99,7 +99,10 @@ def list_repository_files(files, path):
 
     contents = []
     for content_folder in ['releases', 'palette', 'palettes', 'docs']:
-        contents.append(('%s/%s' % (path, content_folder), content_folder))
+        folder = '%s/%s' % (path, content_folder)
+        if not Path(folder).exists():
+            continue
+        contents.append([folder, content_folder])
 
     while contents:
         file_content, content_folder = contents.pop(0)
