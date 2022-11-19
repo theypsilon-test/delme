@@ -30,18 +30,10 @@ def main():
             continue
 
         branch=''
-        repo_url = subprocess.run(['mktemp', '-d'], shell=False, stderr=subprocess.STDOUT, stdout=subprocess.PIPE).stdout.decode()
+        repo_url = repo.ssh_url.replace('git@github.com:', 'https://github.com/')
+        repo_path = subprocess.run(['mktemp', '-d'], shell=False, stderr=subprocess.STDOUT, stdout=subprocess.PIPE).stdout.decode()
         print(repo_path)
-        processes.append(subprocess.Popen(f'\
-    rm -rf {repo_path} || true && \
-    mkdir -p {repo_path} && \
-    pushd {repo_path} > /dev/null 2>&1 && \
-    git init -q && \
-    git remote add origin {repo_url} && \
-    git -c protocol.version=2 fetch --depth=1 -q --no-tags --prune --no-recurse-submodules origin {branch} && \
-    git checkout -qf FETCH_HEAD && \
-    popd > /dev/null 2>&1 && \
-        ', shell=True, stderr=subprocess.STDOUT))
+        processes.append(subprocess.Popen(['bash', '.github/download_repository.sh', repo_path, repo_url, branch], shell=False, stderr=subprocess.STDOUT))
 
     count = 0
     while count < len(processes):
