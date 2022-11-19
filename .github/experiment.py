@@ -32,7 +32,7 @@ def main():
     
     repo_count = 0
     for repo in Github(os.environ['GITHUB_TOKEN']).get_user('MiSTer-devel').get_repos():
-        repo_path = subprocess.run(['mkdir', '-d'], shell=False, stderr=subprocess.STDOUT, stdout=subprocess.PIPE).stdout.decode()
+        repo_path = subprocess.run(['mktemp', '-d'], shell=False, stderr=subprocess.STDOUT, stdout=subprocess.PIPE).stdout.decode()
         lower_name = repo.name.lower()
         if lower_name in ('distribution_mister', 'downloader_mister') or not lower_name.endswith('mister') or 'linux' in lower_name or 'sd-install' in lower_name:
             continue
