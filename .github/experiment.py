@@ -56,11 +56,15 @@ def main():
             print()
 
         process_repos(repos)
-
     
     if not repos_downloaded(repos):
         raise Exception('Some repos didnt download!')
 
+    for repo in repos:
+        print(repo.name)
+        print(repo.path)
+
+    exit(0)
     for repo in repos:
         repo.files = {}
         list_repository_files(repo.files, repo.path)
