@@ -8,6 +8,8 @@ import time
 import queue
 import tempfile
 import shutil
+import subprocess
+import shlex
 
 g = Github(os.environ['GITHUB_TOKEN'], pool_size=100)
 
@@ -18,43 +20,36 @@ def main():
     result_queue = queue.Queue()
     job_queue = queue.Queue()
 
+    processes = []
     
     repo_count = 0
     for repo in g.get_user('MiSTer-devel').get_repos():
-        repo_path = '%s/dist_repo_%s' % (tempfile.gettempdir(), repo.name)
+        repo_path = 'asdf/dist_repo_%s' % repo.name
         lower_name = repo.name.lower()
         if lower_name in ('distribution_mister', 'downloader_mister') or not lower_name.endswith('mister') or 'linux' in lower_name or 'sd-install' in lower_name:
             continue
 
-        job_queue.put([repo_path, repo.ssh_url.replace('git@github.com:', 'https://github.com/')], False)
-        repo_count += 1
+        branch=''
+        repo_url = repo.ssh_url.replace('git@github.com:', 'https://github.com/')
+        print(repo_path)
+        processes.append(subprocess.Popen(f'\
+    rm -rf {repo_path} || true ;\
+    mkdir -p {repo_path} ;\
+    pushd {repo_path} > /dev/null 2>&1 ;\
+    git init -q ;\
+    git remote add origin {repo_url} ;\
+    git -c protocol.version=2 fetch --depth=1 -q --no-tags --prune --no-recurse-submodules origin {branch} ;\
+    git checkout -qf FETCH_HEAD ;\
+    popd > /dev/null 2>&1 ;\
+        ', shell=True, stderr=subprocess.STDOUT))
 
-    threads = [Thread(target=thread_worker, args=(i, job_queue, result_queue)) for i in range(30)]
-    for thread in threads:
-        thread.start()
-
-    ongoing_count = 0
-
-    while ongoing_count < repo_count:
-        while not result_queue.empty():
-            result = result_queue.get(False)
-            result_queue.task_done()
-
-            if is_error(result):
-                raise result['error']
-
-            if result is None:
-                ongoing_count += 1
-                continue
-            
-            folder, path, url = result
-            print(url)
-
-    result_queue.join()
-
-    for thread in threads:
-        thread.join()
-
+    count = 0
+    while count < len(processes):
+        for p in processes:
+            result = p.poll()
+            if result is not None:
+                count += 1
+                print(result)
 
     print("Time:")
     end = time.time()
