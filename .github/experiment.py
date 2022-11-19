@@ -22,7 +22,7 @@ class Repo:
     branch: str
     result: int = None
     process: Popen = None
-    files = {}
+    files = None
 
 def main():
 
@@ -57,12 +57,13 @@ def main():
         raise Exception('Some repos didnt download!')
 
     for repo in repos:
+        repo.files = {}
         list_repository_files(repo.files, repo_path)
 
     for repo in repos:
         print(repo.name)
         for folder in repo.files:
-            print(folder)
+            print('%s:' % folder)
             for f in repo.files[folder]:
                 print(f.split(folder)[1][1:])
 
