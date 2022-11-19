@@ -72,6 +72,7 @@ def main():
 def process_repos(all_repos: List[Repo]):
     repos = [repo for repo in all_repos if repo.result != 0]
     for repo in repos:
+        print(repo.name)
         repo.process = Popen(['bash', '.github/download_repository.sh', repo.path, repo.url, repo.branch], shell=False, stderr=subprocess.STDOUT)
 
     count = 0
@@ -106,6 +107,7 @@ def list_repository_files(files, path):
 
     while contents:
         file_content, content_folder = contents.pop(0)
+        print(file_content)
         if Path(file_content).is_dir():
             contents = [*contents, *[[content, content_folder] for content in os.walk(file_content)]]
         else:
