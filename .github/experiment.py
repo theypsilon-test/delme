@@ -34,15 +34,19 @@ def main():
     
     repo_count = 0
     for repo in Github(os.environ['GITHUB_TOKEN']).get_user('MiSTer-devel').get_repos():
-        repo_path = '%s/%s' % (delme, repo.name)
+        repo_path = 
         lower_name = repo.name.lower()
         if lower_name in ('distribution_mister', 'downloader_mister') or not lower_name.endswith('mister') or 'linux' in lower_name or 'sd-install' in lower_name:
             continue
 
         branch = ''
-        repo_url = repo.ssh_url.replace('git@github.com:', 'https://github.com/')
 
-        repos.append(Repo(name=repo.name, path=repo_path, url=repo_url, branch=branch))
+        repos.append(Repo(
+            name=repo.name,
+            path='%s/%s' % (delme, repo.name),
+            url=repo.ssh_url.replace('git@github.com:', 'https://github.com/'),
+            branch=branch
+        ))
 
     for i in range(5):
         if i > 0:
