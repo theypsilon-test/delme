@@ -72,7 +72,7 @@ def main():
 def process_repos(all_repos: List[Repo]):
     repos = [repo for repo in all_repos if repo.result != 0]
     for repo in repos:
-        print(repo.name)
+        print(repo.name, flush=True)
         repo.process = Popen(['bash', '.github/download_repository.sh', repo.path, repo.url, repo.branch], shell=False, stderr=subprocess.STDOUT)
 
     count = 0
@@ -86,33 +86,30 @@ def process_repos(all_repos: List[Repo]):
                 count += 1
                 repo.result = result
                 repo.process = None
-                print('%s: %s' % (result, repo.url))
+                print('%s: %s' % (result, repo.url), flush=True)
 
 def repos_downloaded(repos: List[Repo]):
     for repo in repos:
         if repo.result != 0:
-            print('Repo %s didnt download!!!' % repo.name)
+            print('Repo %s didnt download!!!' % repo.name, flush=True)
             return False
 
     return True
 
 def list_repository_files(files, path):
-
-    contents = []
     for content_folder in ['releases', 'palette', 'palettes', 'docs']:
         folder = '%s/%s' % (path, content_folder)
         if not Path(folder).exists():
             continue
-        contents.append([folder, content_folder])
+        files[content_folder] = [*list(folder)]
 
-    while contents:
-        file_content, content_folder = contents.pop(0)
-        print(file_content)
-        if Path(file_content).is_dir():
-            contents = [*contents, *[[content, content_folder] for content in os.walk(file_content)]]
-        else:
-            files[content_folder] = files.get(content_folder, [])
-            files[content_folder].append(file_content)
+def list(dir):
+    subfolders, files = [], []
+    for f in os.scandir(dir):
+        if f.is_dir():
+            yield from list(f.path)
+        elif f.is_file():
+            yield f.path
 
 if __name__ == '__main__':
     main()
