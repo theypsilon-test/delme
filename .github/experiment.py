@@ -63,7 +63,7 @@ def main():
 
     for repo in repos:
         repo.files = {}
-        list_repository_files(repo.files, repo_path)
+        list_repository_files(repo.files, repo.path)
 
     for repo in repos:
         print(repo.name)
