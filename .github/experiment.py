@@ -1,17 +1,12 @@
 #!/usr/bin/env python3
 
-from github import Github, UnknownObjectException
-from threading import Thread
+from github import Github
 import os
 import time
-import queue
-import tempfile
-import shutil
 import subprocess
-import shlex
 from dataclasses import dataclass
-from typing import Any, List
-from subprocess import Popen, run
+from typing import List
+from subprocess import Popen
 from pathlib import Path
 
 @dataclass
@@ -30,28 +25,24 @@ def main():
 
     repos = []
     
-    delme = subprocess.run(['mktemp', '-d'], shell=False, stderr=subprocess.STDOUT, stdout=subprocess.PIPE).stdout.decode()
+    delme = subprocess.run(['mktemp', '-d'], shell=False, stderr=subprocess.STDOUT, stdout=subprocess.PIPE).stdout.decode().strip()
     
-    repo_count = 0
-    for repo in Github(os.environ['GITHUB_TOKEN']).get_user('MiSTer-devel').get_repos():
-        lower_name = repo.name.lower()
+    for grepo in Github(os.environ['GITHUB_TOKEN']).get_user('MiSTer-devel').get_repos():
+        lower_name = grepo.name.lower()
         if lower_name in ('distribution_mister', 'downloader_mister') or not lower_name.endswith('mister') or 'linux' in lower_name or 'sd-install' in lower_name:
             continue
 
-        branch = ''
-
         repos.append(Repo(
-            name=repo.name,
-            path='%s/%s' % (delme, repo.name),
-            url=repo.ssh_url.replace('git@github.com:', 'https://github.com/'),
-            branch=branch
+            name=grepo.name,
+            path=f'{delme}/{grepo.name}',
+            url=grepo.ssh_url.replace('git@github.com:', 'https://github.com/'),
+            branch=''
         ))
 
     for repo in repos:
         print(repo.name)
         print(repo.path)
 
-    exit(0)
     for i in range(5):
         if i > 0:
             if repos_downloaded(repos):
@@ -72,7 +63,7 @@ def main():
     for repo in repos:
         print(repo.name)
         for folder in repo.files:
-            print('%s:' % folder)
+            print(f'{folder}:')
             for f in repo.files[folder]:
                 print(f.split(folder)[1][1:])
 
@@ -118,8 +109,8 @@ def list_repository_files(files, path):
         print(folder, content_folder)
         files[content_folder.lower()] = list(list_files(folder))
 
-def list_files(dir):
-    for f in os.scandir(dir):
+def list_files(directory):
+    for f in os.scandir(directory):
         if f.is_dir():
             yield from list_files(f.path)
         elif f.is_file():
