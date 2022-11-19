@@ -12,6 +12,7 @@ import shlex
 from dataclasses import dataclass
 from typing import Any, List
 from subprocess import Popen, run
+from pathlib import Path
 
 @dataclass
 class Repo:
@@ -41,10 +42,16 @@ def main():
 
         repos.append(Repo(name=repo.name, path=repo_path, url=repo_url, branch=branch))
 
-    for _ in range(5):
+    for i in range(5):
+        if i > 0:
+            if repos_downloaded(repos):
+                break
+            print()
+            print('Trying failed ones...')
+            print()
+
         process_repos(repos)
-        if repos_downloaded(repos):
-            break
+
     
     if not repos_downloaded(repos):
         raise Exception('Some repos didnt download!')
@@ -78,13 +85,14 @@ def process_repos(all_repos: List[Repo]):
                 count += 1
                 repo.result = result
                 repo.process = None
+                print('%s: %s' % (result, repo.url))
 
 def repos_downloaded(repos: List[Repo]):
     for repo in repos:
         if repo.result != 0:
-            print('Repo %s didnt download' % repo.name)
+            print('Repo %s didnt download!!!' % repo.name)
             return False
-    
+
     return True
 
 def list_repository_files(files, path):
