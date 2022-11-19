@@ -57,7 +57,7 @@ def main():
     print()
 
 def process_repos(all_repos: List[Repo]):
-    repos = {repo for repo in all_repos if repo.result != 0}
+    repos = [repo for repo in all_repos if repo.result != 0]
     for repo in repos:
         repo.process = Popen(['bash', '.github/download_repository.sh', repo.path, repo.url, repo.branch], shell=False, stderr=subprocess.STDOUT)
 
