@@ -105,6 +105,8 @@ def list_repository_files(files, path):
         folder = '%s/%s' % (path, content_folder)
         if not Path(folder).exists():
             continue
+        print('this:')
+        print(folder, content_folder)
         files[content_folder.lower()] = list(list_files(folder))
 
 def list_files(dir):
