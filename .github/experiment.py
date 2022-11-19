@@ -62,6 +62,10 @@ def main():
     for repo in repos:
         print(repo.name)
         print(repo.files)
+        for folder in repo.files:
+            print(folder)
+            for f in repo.files[folder]:
+                print(f.split(folder)[1])
 
     print()
     print("Time:")
@@ -97,11 +101,11 @@ def repos_downloaded(repos: List[Repo]):
     return True
 
 def list_repository_files(files, path):
-    for content_folder in ['releases', 'palette', 'palettes', 'docs']:
+    for content_folder in ['releases', 'Palette', 'Palettes', 'palettes']:
         folder = '%s/%s' % (path, content_folder)
         if not Path(folder).exists():
             continue
-        files[content_folder] = [*list(folder)]
+        files[content_folder.lower()] = [*list(folder)]
 
 def list(dir):
     subfolders, files = [], []
