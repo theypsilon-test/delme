@@ -32,7 +32,7 @@ def main():
         branch=''
         repo_url = subprocess.run(['mktemp', '-d'], shell=False, stderr=subprocess.STDOUT, stdout=subprocess.PIPE).stdout.decode()
         print(repo_path)
-        processes.append(subprocess.Popen(f'\
+        processes.append(subprocess.Popen(f'bash -c "\
     rm -rf {repo_path} || true ;\
     mkdir -p {repo_path} ;\
     pushd {repo_path} > /dev/null 2>&1 ;\
@@ -41,7 +41,7 @@ def main():
     git -c protocol.version=2 fetch --depth=1 -q --no-tags --prune --no-recurse-submodules origin {branch} ;\
     git checkout -qf FETCH_HEAD ;\
     popd > /dev/null 2>&1 ;\
-        ', shell=True, stderr=subprocess.STDOUT))
+        "', shell=True, stderr=subprocess.STDOUT))
 
     count = 0
     while count < len(processes):
