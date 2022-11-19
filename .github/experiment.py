@@ -72,6 +72,8 @@ def process_repos(all_repos: List[Repo]):
                 count += 1
                 repo.result = result
                 repo.process = None
+            if result == 0:
+                print(repo.name)
 
 def repos_downloaded(repos: List[Repo]):
     for repo in repos:
