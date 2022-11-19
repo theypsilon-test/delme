@@ -65,7 +65,10 @@ def main():
         for folder in repo.files:
             print(f'{folder}:')
             for f in repo.files[folder]:
-                print(f.split(folder)[1][1:])
+                try:
+                    print(f.split(folder)[1][1:])
+                except:
+                    print(f'error on: {f}')
 
     print()
     print("Time:")
