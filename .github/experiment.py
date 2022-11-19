@@ -61,11 +61,10 @@ def main():
 
     for repo in repos:
         print(repo.name)
-        print(repo.files)
         for folder in repo.files:
             print(folder)
             for f in repo.files[folder]:
-                print(f.split(folder)[1])
+                print(f.split(folder)[1][1:])
 
     print()
     print("Time:")
