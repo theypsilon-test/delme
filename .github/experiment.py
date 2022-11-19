@@ -39,10 +39,6 @@ def main():
             branch=''
         ))
 
-    for repo in repos:
-        print(repo.name)
-        print(repo.path)
-
     for i in range(5):
         if i > 0:
             if repos_downloaded(repos):
@@ -65,10 +61,7 @@ def main():
         for folder in repo.files:
             print(f'{folder}:')
             for f in repo.files[folder]:
-                try:
-                    print(f.split(folder)[1][1:])
-                except:
-                    print(f'error on: {f}')
+                print(path_tail(folder, f))
 
     print()
     print("Time:")
@@ -76,6 +69,10 @@ def main():
     print(end - start)
     print()
 
+def path_tail(folder, f):
+    pos = f.find(folder)
+    return f[pos + len(folder) + 1:]
+    
 def process_repos(all_repos: List[Repo]):
     repos = [repo for repo in all_repos if repo.result != 0]
     for repo in repos:
@@ -109,7 +106,7 @@ def list_repository_files(files, path):
         if not Path(folder).exists():
             continue
 
-        files[content_folder.lower()] = list(list_files(folder))
+        files[content_folder] = list(list_files(folder))
 
 def list_files(directory):
     for f in os.scandir(directory):
