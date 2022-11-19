@@ -19,7 +19,7 @@ class Repo:
     path: str
     branch: str
     result: int = None
-    process: Popen[bytes] = None
+    process: Popen = None
 
 
 g = Github(os.environ['GITHUB_TOKEN'], pool_size=100)
