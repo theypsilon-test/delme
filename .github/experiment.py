@@ -104,13 +104,12 @@ def list_repository_files(files, path):
         folder = '%s/%s' % (path, content_folder)
         if not Path(folder).exists():
             continue
-        files[content_folder.lower()] = [*list(folder)]
+        files[content_folder.lower()] = list(list_files(folder))
 
-def list(dir):
-    subfolders, files = [], []
+def list_files(dir):
     for f in os.scandir(dir):
         if f.is_dir():
-            yield from list(f.path)
+            yield from list_files(f.path)
         elif f.is_file():
             yield f.path
 
