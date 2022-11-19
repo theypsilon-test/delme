@@ -13,6 +13,7 @@ from dataclasses import dataclass
 from typing import Any, List
 from subprocess import Popen, run
 
+@dataclass
 class Repo:
     name: str
     url: str
