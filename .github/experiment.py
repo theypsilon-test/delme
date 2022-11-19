@@ -57,7 +57,7 @@ def main():
     print()
 
 def run(text):
-
+    pass
 
 def thread_worker(i, job_queue, result_queue):
     print('Thread %s started!' % i)
