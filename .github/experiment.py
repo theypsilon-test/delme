@@ -7,6 +7,7 @@ import os
 import time
 import queue
 import tempfile
+import shutil
 
 g = Github(os.environ['GITHUB_TOKEN'], pool_size=100)
 
@@ -20,12 +21,15 @@ def main():
     
     repo_count = 0
     for repo in g.get_user('MiSTer-devel').get_repos():
-        repo_path = '%s/%s' % (tempfile.gettempdir(), repo.name)
-        print(repo_path)
-        job_queue.put([repo_path, repo.git_url], False)
+        repo_path = '%s/dist_repo_%s' % (tempfile.gettempdir(), repo.name)
+        lower_name = repo.name.lower()
+        if lower_name in ('distribution_mister', 'downloader_mister') or not lower_name.endswith('mister') or 'linux' in lower_name or 'sd-install' in lower_name:
+            continue
+
+        job_queue.put([repo_path, repo.ssh_url.replace('git@github.com:', 'https://github.com/')], False)
         repo_count += 1
 
-    threads = [Thread(target=thread_worker, args=(job_queue, result_queue)) for _ in range(30)]
+    threads = [Thread(target=thread_worker, args=(i, job_queue, result_queue)) for i in range(30)]
     for thread in threads:
         thread.start()
 
@@ -57,12 +61,13 @@ def main():
     print(end - start)
     print()
 
-def thread_worker(job_queue, result_queue):
+def thread_worker(i, job_queue, result_queue):
+    print('Thread %s started!' % i)
     try:
         while not job_queue.empty():
-            repo_path, repo_git_url = job_queue.get(False)
-            for folder, path, url in list_repository_files(repo_path, repo_git_url):
-                result_queue.put([folder, path, url], False)
+            repo_path, repo_https_url = job_queue.get(False)
+            for result in list_repository_files(repo_path, repo_https_url):
+                result_queue.put(result, False)
             job_queue.task_done()
     except Exception as e:
         result_queue.put(error(e))
@@ -76,9 +81,23 @@ def error(e):
 def is_error(e):
     return isinstance(e, dict) and e.get('error') is not None
 
-def list_repository_files(repo_path, repo_git_url):
-    repo = git.Repo.clone_from(repo_git_url, repo_path)
-    return []
+def list_repository_files(repo_path, repo_https_url):
+    shutil.rmtree(repo_path, ignore_errors=True)
+    error = None
+    for retry in range(5):
+        try:
+            repo = Repo.clone_from(repo_https_url, repo_path, depth=1)
+            error = None
+            break
+        except Exception as e:
+            print('Retry! %s' % retry)
+            error = e
+            time.sleep(1)
+
+    if error is not None:
+        raise error
+
+    return [(repo_https_url, repo_https_url, repo_https_url)]
 
     files = []
     contents = []
@@ -93,7 +112,7 @@ def list_repository_files(repo_path, repo_git_url):
         if file_content.type == "dir":
             contents = [*contents, *[[content, content_folder] for content in repo.get_contents(file_content.path)]]
         else:
-            files.append([content_folder, file_content.path, file_content.download_url])
+            files.append([content_folder, file_contentgo.path, file_content.download_url])
     return files
 
 if __name__ == '__main__':
