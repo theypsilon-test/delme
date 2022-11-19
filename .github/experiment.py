@@ -43,7 +43,7 @@ def main():
 
         repos.append(Repo(name=repo.name, path=repo_path, url=repo_url, branch=branch))
 
-    for _ in enumerate(5):
+    for _ in range(5):
         process_repos(repos)
         if repos_downloaded(repos):
             break
