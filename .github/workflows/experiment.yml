@@ -1,0 +1,29 @@
+name: Experiment
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-20.04
+
+    steps:
+    - name: Install apt-get utilities
+      run: sudo apt-get install detox sharutils
+
+    - uses: actions/checkout@v3
+
+    - uses: actions/setup-python@v4
+      with:
+        python-version: '3.8'
+        cache: 'pip'
+
+    - run: pip install -r .github/python_requirements.txt
+
+    - name: Task
+      run: ./.github/experiment.py
+      env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
