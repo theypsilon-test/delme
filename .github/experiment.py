@@ -27,6 +27,7 @@ def main():
     
     delme = subprocess.run(['mktemp', '-d'], shell=False, stderr=subprocess.STDOUT, stdout=subprocess.PIPE).stdout.decode().strip()
     
+    job_counter = 0
     for grepo in Github(os.environ['GITHUB_TOKEN']).get_user('MiSTer-devel').get_repos():
         lower_name = grepo.name.lower()
         if lower_name in ('distribution_mister', 'downloader_mister') or not lower_name.endswith('mister') or 'linux' in lower_name or 'sd-install' in lower_name:
@@ -38,19 +39,13 @@ def main():
             url=grepo.ssh_url.replace('git@github.com:', 'https://github.com/'),
             branch=''
         ))
+        
+        job_counter += 1
+        if (job_counter > 100):
+            wait_jobs(repos)
+            job_counter = 0
 
-    for i in range(5):
-        if i > 0:
-            if repos_downloaded(repos):
-                break
-            print()
-            print('Trying failed ones...')
-            print()
-
-        process_repos(repos)
-    
-    if not repos_downloaded(repos):
-        raise Exception('Some repos didnt download!')
+    wait_jobs(repos)
 
     for repo in repos:
         repo.files = {}
@@ -68,6 +63,20 @@ def main():
     end = time.time()
     print(end - start)
     print()
+
+def wait_jobs(repos):
+    for i in range(5):
+        if i > 0:
+            if repos_downloaded(repos):
+                break
+            print()
+            print('Trying failed ones...')
+            print()
+
+        process_repos(repos)
+    
+    if not repos_downloaded(repos):
+        raise Exception('Some repos didnt download!')
 
 def path_tail(folder, f):
     pos = f.find(folder)
