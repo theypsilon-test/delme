@@ -47,7 +47,7 @@ def main():
         threads.append(thread)
 
         job_count += 1
-        job_count = wait_jobs(finish_queue, job_count, 100)
+        job_count = wait_jobs(finish_queue, job_count, 30)
         
     wait_jobs(finish_queue, job_count, 0)
 
