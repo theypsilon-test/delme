@@ -131,10 +131,10 @@ def process_url(core, category, delme):
     shutil.rmtree(path, ignore_errors=True)
     os.makedirs(path, exist_ok=True)
 
-    run(['git', 'init', '-q'], cwd=path)
-    run(['git', 'remote', 'add', 'origin', url], cwd=path)
-    run(['git', '-c', 'protocol.version=2', 'fetch', '--depth=1', '-q', '--no-tags', '--prune', '--no-recurse-submodules', 'origin', branch], cwd=path)
-    run(['git', 'checkout', '-qF', 'FETCH_HEAD'], cwd=path)
+    run(['git', 'init', '-q'], path)
+    run(['git', 'remote', 'add', 'origin', url], path)
+    run(['git', '-c', 'protocol.version=2', 'fetch', '--depth=1', '-q', '--no-tags', '--prune', '--no-recurse-submodules', 'origin', branch], path)
+    run(['git', 'checkout', '-qF', 'FETCH_HEAD'], path)
     
     files = {}
     list_repository_files(files, path)
