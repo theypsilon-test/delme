@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 
-from github import Github
 import os
 import time
 import subprocess
@@ -30,7 +29,6 @@ def main():
     cores.extend(arcade_cores())
     
     delme = subprocess.run(['mktemp', '-d'], shell=False, stderr=subprocess.STDOUT, stdout=subprocess.PIPE).stdout.decode().strip()
-    mister_devel = Github(os.environ['GITHUB_TOKEN']).get_user('MiSTer-devel')
     
     repos = []
     processes = {}
@@ -38,23 +36,22 @@ def main():
     for core in cores:
         if core.startswith('user-content-') or 'tree' in core:
             continue
-        core = path_tail('https://github.com/MiSTer-devel', core)
-        print(core)
+        name = path_tail('https://github.com/MiSTer-devel', core)
+        print(name)
 
-        grepo = mister_devel.get_repo(core)
-        lower_name = grepo.name.lower()
+        lower_name = name.lower()
         if lower_name in ('distribution_mister', 'downloader_mister') or not lower_name.endswith('mister') or 'linux' in lower_name or 'sd-install' in lower_name:
             continue
 
         repo = Repo(
-            name=grepo.name,
-            path=f'{delme}/{grepo.name}',
-            url=grepo.ssh_url.replace('git@github.com:', 'https://github.com/'),
+            name=name,
+            path=f'{delme}/{name}',
+            url=f'{core}.git',
             branch=''
         )
         repo.process = Popen(['bash', '.github/download_repository.sh', repo.path, repo.url, repo.branch], shell=False, stderr=subprocess.STDOUT)
         repos.append(repo)
-        processes[grepo.name] = repo
+        processes[name] = repo
         
         while len(processes) > 100:
             for p in list(processes):
