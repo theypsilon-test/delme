@@ -12,6 +12,7 @@ import re
 from threading import Thread
 import queue
 import shutil
+import shlex
 
 @dataclass
 class Repo:
@@ -131,10 +132,10 @@ def process_url(core, category, delme):
     shutil.rmtree(path, ignore_errors=True)
     os.makedirs(path, exist_ok=True)
 
-    run(['git', 'init', '-q'], path)
-    run(['git', 'remote', 'add', 'origin', url], path)
-    run(['git', '-c', 'protocol.version=2', 'fetch', '--depth=1', '-q', '--no-tags', '--prune', '--no-recurse-submodules', 'origin', branch], path)
-    run(['git', 'checkout', '-qF', 'FETCH_HEAD'], path)
+    run('git init -q', path)
+    run('git remote add origin ' + url, path)
+    run('git -c protocol.version=2 fetch --depth=1 -q --no-tags --prune --no-recurse-submodules origin ' + branch, path)
+    run('git checkout -qF FETCH_HEAD', path)
     
     files = {}
     list_repository_files(files, path)
@@ -145,9 +146,9 @@ def process_url(core, category, delme):
     return url
 
 def run(command, path):
-    result = subprocess.run(command, cwd=path, shell=False, stderr=subprocess.DEVNULL)
+    result = subprocess.run(shlex.split(command), cwd=path, shell=False, stderr=subprocess.DEVNULL)
     if result.returncode != 0:
-        raise Exception(f'returncode {result.returncode}')
+        raise Exception(f'returncode {result.returncode} from {command}')
 
 def wait_jobs(finish_queue, job_count, limit):
     while job_count > limit:
