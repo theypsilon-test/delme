@@ -26,6 +26,8 @@ def main():
     start = time.time()
 
     cores = most_cores()
+    cores.extend(arcade_cores())
+    print(cores)
     
     delme = subprocess.run(['mktemp', '-d'], shell=False, stderr=subprocess.STDOUT, stdout=subprocess.PIPE).stdout.decode().strip()
     
@@ -102,6 +104,16 @@ def most_cores():
             core = match.group(0)
             if 'menu_mister' not in core.lower():
                 cores.append(core)
+    return cores
+
+def arcade_cores():
+    text = fetch_text('https://raw.githubusercontent.com/wiki/MiSTer-devel/Wiki_MiSTer/Arcade-Cores-List.md')
+    cores = []
+    regex = re.compile(r'https://github.com/MiSTer-devel/[a-zA-Z0-9._-]*[_-]MiSTer[^\/]', re.I)
+    for line in sys.stdin.readlines():
+        match = regex.search(line)
+        if match is not None:
+            cores.append(match.group(0)[0:-1])
     return cores
 
 def fetch_text(url):
