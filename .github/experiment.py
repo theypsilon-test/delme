@@ -135,7 +135,7 @@ def process_url(core, category, delme):
     run('git init -q', path)
     run('git remote add origin ' + url, path)
     run('git -c protocol.version=2 fetch --depth=1 -q --no-tags --prune --no-recurse-submodules origin ' + branch, path)
-    run('git checkout -qF FETCH_HEAD', path)
+    run('git checkout -qF HEAD', path)
     
     files = {}
     list_repository_files(files, path)
@@ -148,7 +148,7 @@ def process_url(core, category, delme):
 def run(command, path):
     result = subprocess.run(shlex.split(command), cwd=path, shell=False, stderr=subprocess.DEVNULL)
     if result.returncode != 0:
-        raise Exception(f'returncode {result.returncode} from {command}')
+        raise Exception(f'returncode {result.returncode} from: {command}')
 
 def wait_jobs(finish_queue, job_count, limit):
     while job_count > limit:
