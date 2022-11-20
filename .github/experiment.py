@@ -9,6 +9,8 @@ from subprocess import Popen
 from pathlib import Path
 import requests
 import re
+from threading import Thread
+import queue
 
 @dataclass
 class Repo:
@@ -20,6 +22,13 @@ class Repo:
     process: Popen = None
     files = None
 
+@dataclass.dataclass
+class Job:
+    repo_path: str
+    repo_url: str
+    branch: str
+    process: Any
+
 def main():
 
     start = time.time()
@@ -29,56 +38,29 @@ def main():
     cores.extend(arcade_cores())
     
     delme = subprocess.run(['mktemp', '-d'], shell=False, stderr=subprocess.STDOUT, stdout=subprocess.PIPE).stdout.decode().strip()
+
+    finish_queue = queue.Queue()
+    job_count = 0
     
+    threads = []
     repos = []    
     for core in cores:
         if core.startswith('user-content-') or 'tree' in core:
             continue
         name = path_tail('https://github.com/MiSTer-devel', core)
+
+        url = f'{core}.git'
+        path = f'{delme}/{name}'
         print(name)
 
-        lower_name = name.lower()
-        if lower_name in ('distribution_mister', 'downloader_mister') or not lower_name.endswith('mister') or 'linux' in lower_name or 'sd-install' in lower_name:
-            continue
+        thread = Thread(target=thread_worker, args=(core, delme, finish_queue))
+        thread.start()
+        threads.append(thread)
 
-        repos.append(Repo(
-            name=name,
-            path=f'{delme}/{name}',
-            url=f'{core}.git',
-            branch=''
-        ))        
+        job_count += 1
+        job_count = wait_jobs(finish_queue, job_count, 100)
         
-        
-    processes = {}
-        
-    for repo in repos:
-        repo.process = Popen(['bash', '.github/download_repository.sh', repo.path, repo.url, repo.branch], shell=False, stderr=subprocess.STDOUT)
-        processes[repo.name] = repo
-        
-        while len(processes) >= 100:
-            for p in list(processes.keys()):
-                r = processes[p] 
-                result = r.process.poll()
-                if result is not None:
-                    r.result = result
-                    r.process = None
-                    processes.pop(p)
-                    print('%s: %s' % (result, r.url), flush=True)
-            
-            time.sleep(0.1)
-
-    wait_jobs(repos)
-
-    for repo in repos:
-        repo.files = {}
-        list_repository_files(repo.files, repo.path)
-
-    for repo in repos:
-        print(repo.name)
-        for folder in repo.files:
-            print(f'{folder}:')
-            for f in repo.files[folder]:
-                print(path_tail(folder, f))
+    wait_jobs(finish_queue, job_count, 0)
 
     print()
     print("Time:")
@@ -86,19 +68,29 @@ def main():
     print(end - start)
     print()
 
-def wait_jobs(repos):
-    for i in range(5):
-        if i > 0:
-            if repos_downloaded(repos):
-                break
-            print()
-            print('Trying failed ones...')
-            print()
+def thread_worker(core, delme, finish_queue):
+    name = ''
+    try:
+        name = path_tail('https://github.com/MiSTer-devel', core)
+        url = f'{core}.git'
+        path = f'{delme}/{name}'
+        branch = ''
+        print(name)
+        result = subprocess.run(['bash', '.github/download_repository.sh', path, url, branch], shell=False, stderr=subprocess.STDOUT)
+        name = f'{result.returncode}: {name}'
+    except Exception as e:
+        name = f'{type(e).__name__}: {name}'
+    finish_queue.put(name, False)
 
-        process_repos(repos)
-    
-    if not repos_downloaded(repos):
-        raise Exception('Some repos didnt download!')
+def wait_jobs(finish_queue, job_count, limit):
+    while job_count > limit:
+        while not finish_queue.empty():
+            message = finish_queue.get(False)
+            finish_queue.task_done()
+            job_count -= 1
+            print(message)
+
+    return job_count
 
 def most_cores():
     text = fetch_text('https://raw.githubusercontent.com/wiki/MiSTer-devel/Wiki_MiSTer/_Sidebar.md')
