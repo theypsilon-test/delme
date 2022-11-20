@@ -35,9 +35,9 @@ def main():
     repos = []
     job_counter = 0
     for core in cores:
-        print(core)
         if core.startswith('user-content-'):
             continue
+        core = core + '.git'
         grepo = mister_devel.get_repo(core)
         lower_name = grepo.name.lower()
         if lower_name in ('distribution_mister', 'downloader_mister') or not lower_name.endswith('mister') or 'linux' in lower_name or 'sd-install' in lower_name:
