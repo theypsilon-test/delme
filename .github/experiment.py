@@ -140,20 +140,27 @@ late_install = {
     "user-content-mra-alternatives-under-releases": lambda _1, _2, _3, _4: None,
 }
 
-def process_url(core, category, delme):
-    if not core.startswith('https://github.com/MiSTer-devel/'):
-        return core
+repo_regex = re.compile(r'^([a-zA-Z]+://)?github.com(:[0-9]+)?/([a-zA-Z0-9_-]*)/([a-zA-Z0-9_-]*)(/tree/([a-zA-Z0-9_-]+))?$')
 
+def process_url(core, category, delme):
     name = path_tail('https://github.com/MiSTer-devel', core)
     url = f'{core}.git'
     path = f'{delme}/{name}'
-    branch = ''
     target = '.'
 
     if category in early_install:
         return early_install[cateogory](url, target) or core
 
-    download_repository(path, url, branch)
+
+    match = repo_regex.search(core)
+    if match is not None:
+        return f'WARNING! Wrong repository url: "{core}".'
+
+    owner = match.group(3)
+    repo = match.group(4)
+    branch = match.group(6)
+
+    download_repository(path, f'https://github.com/{owner}/{repo}.git', branch)
 
     installer = None
     if category in late_install:
