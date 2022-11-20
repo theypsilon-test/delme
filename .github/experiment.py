@@ -33,7 +33,8 @@ def main():
     mister_devel = Github(os.environ['GITHUB_TOKEN']).get_user('MiSTer-devel')
     
     repos = []
-    job_counter = 0
+    processes = {}
+    
     for core in cores:
         if core.startswith('user-content-') or 'tree' in core:
             continue
@@ -45,17 +46,27 @@ def main():
         if lower_name in ('distribution_mister', 'downloader_mister') or not lower_name.endswith('mister') or 'linux' in lower_name or 'sd-install' in lower_name:
             continue
 
-        repos.append(Repo(
+        repo = Repo(
             name=grepo.name,
             path=f'{delme}/{grepo.name}',
             url=grepo.ssh_url.replace('git@github.com:', 'https://github.com/'),
             branch=''
-        ))
+        )
+        repos.append(repo)
+        processes[grepo.name] = repo
         
-        job_counter += 1
-        if (job_counter > 100):
-            wait_jobs(repos)
-            job_counter = 0
+        while len(processes) > 100:
+            for p in list(processes):
+                repo = processes[p]
+                result = repo.process.poll()
+                if result is not None:
+                    count += 1
+                    repo.result = result
+                    repo.process = None
+                    processes.pop(p)
+                    print('%s: %s' % (result, repo.url), flush=True)
+            
+            time.sleep(1)
 
     wait_jobs(repos)
 
