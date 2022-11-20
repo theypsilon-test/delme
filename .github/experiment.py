@@ -157,13 +157,13 @@ def process_url(core, category, delme):
 
     installer = None
     if category in late_install:
-        installer = category[late_install]
+        installer = late_install[category]
     elif category.startswith('user-content-folders-'):
         installer = lambda _1, _2, _3, _4: None
     else:
         installer = lambda _1, _2, _3, _4: None
 
-    #installer(path, target, category, url)
+    installer(path, target, category, url)
 
     files = {}
     list_repository_files(files, path)
