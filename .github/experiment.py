@@ -31,22 +31,18 @@ def main():
     cores.extend(arcade_cores())
     
     delme = subprocess.run(['mktemp', '-d'], shell=False, stderr=subprocess.STDOUT, stdout=subprocess.PIPE).stdout.decode().strip()
+    category = ''
 
     finish_queue = queue.Queue()
     job_count = 0
     
     threads = []
-    repos = []    
+    repos = []
     for core in cores:
         if core.startswith('user-content-') or 'tree' in core:
             continue
-        name = path_tail('https://github.com/MiSTer-devel', core)
 
-        url = f'{core}.git'
-        path = f'{delme}/{name}'
-        print(name)
-
-        thread = Thread(target=thread_worker, args=(core, delme, finish_queue))
+        thread = Thread(target=thread_worker, args=(core, category, delme, finish_queue))
         thread.start()
         threads.append(thread)
 
@@ -61,19 +57,42 @@ def main():
     print(end - start)
     print()
 
-def thread_worker(core, delme, finish_queue):
-    name = ''
+def thread_worker(core, category, delme, finish_queue):
+    msg = ''
     try:
-        name = path_tail('https://github.com/MiSTer-devel', core)
-        url = f'{core}.git'
-        path = f'{delme}/{name}'
-        branch = ''
-        print(name)
-        result = subprocess.run(['bash', '.github/download_repository.sh', path, url, branch], shell=False, stderr=subprocess.STDOUT)
-        name = f'{result.returncode}: {name}'
+        msg = job(core, category, delme)
     except Exception as e:
-        name = f'{type(e).__name__}: {name}'
-    finish_queue.put(name, False)
+        msg = Exception(f'Exception {type(e).__name__}: {core}')
+    finish_queue.put(msg, False)
+
+def job(core, category, delme):
+    error = None
+    for _ in range(5):
+        try:
+            return process(core, category, delme)
+        except Exception as e:
+            error = e
+            time.sleep(0.5)
+    raise error
+
+def process(core, category, delme):
+    name = path_tail('https://github.com/MiSTer-devel', core)
+    url = f'{core}.git'
+    path = f'{delme}/{name}'
+    branch = ''
+
+    result = subprocess.run(['bash', '.github/download_repository.sh', path, url, branch], shell=False, stderr=subprocess.STDOUT)
+    if result.returncode != 0:
+        raise Exception(f'returncode {result.returncode}')
+    
+    files = {}
+    list_repository_files(files, path)
+
+    print(name)
+    for folder in files:
+        print(f'{folder}:')
+        for f in files[folder]:
+            print(f)
 
 def wait_jobs(finish_queue, job_count, limit):
     while job_count > limit:
