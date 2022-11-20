@@ -87,12 +87,9 @@ def process(core, category, delme):
     
     files = {}
     list_repository_files(files, path)
-
-    print(name)
     for folder in files:
-        print(f'{folder}:')
         for f in files[folder]:
-            print(f)
+            path_tail(path, f)
 
 def wait_jobs(finish_queue, job_count, limit):
     while job_count > limit:
@@ -147,37 +144,6 @@ def fetch_text(url):
 def path_tail(folder, f):
     pos = f.find(folder)
     return f[pos + len(folder) + 1:]
-    
-def process_repos(repos: List[Repo]):
-    total = 0
-    for repo in repos:
-        if repo.process is not None:
-            total += 1
-            continue
-        if repo.result != 0:
-            total += 1
-            repo.process = Popen(['bash', '.github/download_repository.sh', repo.path, repo.url, repo.branch], shell=False, stderr=subprocess.STDOUT)
-            repo.result = None
-
-    count = 0
-    while count < total:
-        for repo in repos:
-            if repo.process is None:
-                continue
-            result = repo.process.poll()
-            if result is not None:
-                count += 1
-                repo.result = result
-                repo.process = None
-                print('%s: %s' % (result, repo.url), flush=True)
-
-def repos_downloaded(repos: List[Repo]):
-    for repo in repos:
-        if repo.result != 0:
-            print('Repo %s didnt download!!!' % repo.name, flush=True)
-            return False
-
-    return True
 
 def list_repository_files(files, path):
     for content_folder in ['releases', 'Palette', 'Palettes', 'palettes']:
