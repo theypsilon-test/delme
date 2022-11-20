@@ -145,13 +145,14 @@ def path_tail(folder, f):
     pos = f.find(folder)
     return f[pos + len(folder) + 1:]
     
-def process_repos(all_repos: List[Repo]):
+def process_repos(repos: List[Repo]):
     count = 0
+    for repo in repos:
+        if repo.process is not None:
+            count += 1
+
     while count < len(repos):
         for repo in repos:
-            if repo.process is None:
-                continue
-
             result = repo.process.poll()
             if result is not None:
                 count += 1
