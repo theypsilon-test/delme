@@ -35,7 +35,7 @@ def main():
     repos = []
     job_counter = 0
     for core in cores:
-        if core.startswith('user-content-'):
+        if core.startswith('user-content-') or 'tree' in core:
             continue
         core = path_tail('https://github.com/MiSTer-devel', core)
         print(core)
