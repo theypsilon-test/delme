@@ -37,7 +37,7 @@ def main():
     for core in cores:
         if core.startswith('user-content-'):
             continue
-        core = core + '.git'
+        core = path_tail('https://github.com/MiSTer-devel', core)
         print(core)
 
         grepo = mister_devel.get_repo(core)
