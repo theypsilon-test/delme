@@ -120,6 +120,26 @@ def categorize(url):
     elif url == "user-content-fonts": return url
     else: return ""
 
+
+early_install = {
+    'user-content-scripts': lambda _1, _2: None,
+    'user-content-empty-folder': lambda _1, _2: None,
+    'user-cheats': lambda _1, _2: None,
+    'user-content-gamecontrollerdb': lambda _1, _2: None,
+}
+
+late_install = {
+    "_Arcade": lambda _1, _2, _3, _4: None,
+    "_Computer": lambda _1, _2, _3, _4: None,
+    "_Console": lambda _1, _2, _3, _4: None,
+    "main": lambda _1, _2, _3, _4: None,
+    "user-content-zip-release": lambda _1, _2, _3, _4: None,
+    "user-content-linux-binary": lambda _1, _2, _3, _4: None,
+    "user-content-fonts": lambda _1, _2, _3, _4: None,
+    "user-content-mra-alternatives": lambda _1, _2, _3, _4: None,
+    "user-content-mra-alternatives-under-releases": lambda _1, _2, _3, _4: None,
+}
+
 def process_url(core, category, delme):
     if not core.startswith('https://github.com/MiSTer-devel/'):
         return core
@@ -128,15 +148,23 @@ def process_url(core, category, delme):
     url = f'{core}.git'
     path = f'{delme}/{name}'
     branch = ''
+    target = '.'
 
-    shutil.rmtree(path, ignore_errors=True)
-    os.makedirs(path, exist_ok=True)
+    if category in early_install:
+        return early_install[cateogory](url, target) or core
 
-    run('git init -q', path)
-    run('git remote add origin ' + url, path)
-    run('git -c protocol.version=2 fetch --depth=1 -q --no-tags --prune --no-recurse-submodules origin ' + branch, path)
-    run('git checkout -qf FETCH_HEAD', path)
-    
+    download_repository(path, url, branch)
+
+    installer = None
+    if category in late_install:
+        installer = category[late_install]
+    elif category.startswith('user-content-folders-'):
+        installer = lambda _1, _2, _3, _4: None
+    else:
+        installer = lambda _1, _2, _3, _4: None
+
+    installer(path, target, category, url)
+
     files = {}
     list_repository_files(files, path)
     for folder in files:
@@ -144,6 +172,14 @@ def process_url(core, category, delme):
             path_tail(path, f)
 
     return url
+
+def download_repository(path, url, branch):
+    shutil.rmtree(path, ignore_errors=True)
+    os.makedirs(path, exist_ok=True)
+    run('git init -q', path)
+    run('git remote add origin ' + url, path)
+    run('git -c protocol.version=2 fetch --depth=1 -q --no-tags --prune --no-recurse-submodules origin ' + branch, path)
+    run('git checkout -qf FETCH_HEAD', path)
 
 def run(command, path):
     result = subprocess.run(shlex.split(command), cwd=path, shell=False, stderr=subprocess.DEVNULL)
