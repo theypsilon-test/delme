@@ -59,7 +59,7 @@ def main():
     cache = set()
     for core in cores:
         if core.startswith('user-') or 'tree' in core:
-            category = core
+            category = categorize(core)
             continue
 
         if core in cache:
@@ -93,13 +93,32 @@ def job(core, category, delme):
     error = None
     for _ in range(5):
         try:
-            return process(core, category, delme)
+            return process_url(core, category, delme)
         except Exception as e:
             error = e
             time.sleep(0.5)
     raise error
 
-def process(core, category, delme):
+def categorize(url):
+    if url == "user-content-computers---classic": return "_Computer"
+    elif url == "user-content-computers---classic": return "_Computer"
+    elif url == "user-content-arcade-cores": return "_Arcade"
+    elif url == "user-content-consoles---classic": return "_Console"
+    elif url == "user-content-other-systems": return "_Other"
+    elif url == "user-content-service-cores": return "_Utility"
+    elif url == "user-content-linux-binary": return url
+    elif url == "user-content-zip-release": return url
+    elif url == "user-content-scripts": return url
+    elif url == "user-cheats": return url
+    elif url == "user-content-empty-folder": return url
+    elif url == "user-content-gamecontrollerdb": return url
+    elif url.starswith("user-content-folders-"): return url
+    elif url == "user-content-mra-alternatives": return url
+    elif url == "user-content-mra-alternatives-under-releases": return url
+    elif url == "user-content-fonts": return url
+    else: return ""
+
+def process_url(core, category, delme):
     if not core.startswith('https://github.com/MiSTer-devel/'):
         return core
 
