@@ -62,7 +62,7 @@ def thread_worker(core, category, delme, finish_queue):
     try:
         msg = job(core, category, delme)
     except Exception as e:
-        msg = Exception(f'Exception {type(e).__name__}: {core}')
+        msg = Exception(f'{type(e).__name__}: {core} {category}')
     finish_queue.put(msg, False)
 
 def job(core, category, delme):
@@ -81,7 +81,7 @@ def process(core, category, delme):
     path = f'{delme}/{name}'
     branch = ''
 
-    result = subprocess.run(['bash', '.github/download_repository.sh', path, url, branch], shell=False, stderr=subprocess.STDOUT)
+    result = subprocess.run(['bash', '.github/download_repository.sh', path, url, branch], shell=False, stderr=subprocess.DEVNULL)
     if result.returncode != 0:
         raise Exception(f'returncode {result.returncode}')
     
@@ -90,6 +90,8 @@ def process(core, category, delme):
     for folder in files:
         for f in files[folder]:
             path_tail(path, f)
+
+    return url
 
 def wait_jobs(finish_queue, job_count, limit):
     while job_count > limit:
