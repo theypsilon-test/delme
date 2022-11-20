@@ -61,7 +61,6 @@ def main():
                 repo = processes[p]
                 result = repo.process.poll()
                 if result is not None:
-                    count += 1
                     repo.result = result
                     repo.process = None
                     processes.pop(p)
