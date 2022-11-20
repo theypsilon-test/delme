@@ -97,7 +97,7 @@ def wait_jobs(finish_queue, job_count, limit):
             message = finish_queue.get(False)
             finish_queue.task_done()
             job_count -= 1
-            print(message)
+            print(message, flush=True)
 
     return job_count
 
