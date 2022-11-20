@@ -112,7 +112,7 @@ def categorize(url):
     elif url == "user-cheats": return url
     elif url == "user-content-empty-folder": return url
     elif url == "user-content-gamecontrollerdb": return url
-    elif url.starswith("user-content-folders-"): return url
+    elif url.startswith("user-content-folders-"): return url
     elif url == "user-content-mra-alternatives": return url
     elif url == "user-content-mra-alternatives-under-releases": return url
     elif url == "user-content-fonts": return url
