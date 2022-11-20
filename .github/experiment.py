@@ -22,13 +22,6 @@ class Repo:
     process: Popen = None
     files = None
 
-@dataclass.dataclass
-class Job:
-    repo_path: str
-    repo_url: str
-    branch: str
-    process: Any
-
 def main():
 
     start = time.time()
