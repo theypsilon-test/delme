@@ -18,6 +18,7 @@ class Repo:
     branch: str
     result: int = None
     process: Popen = None
+    retry: int = 0
     files = None
 
 def main():
@@ -30,9 +31,7 @@ def main():
     
     delme = subprocess.run(['mktemp', '-d'], shell=False, stderr=subprocess.STDOUT, stdout=subprocess.PIPE).stdout.decode().strip()
     
-    repos = []
-    processes = {}
-    
+    repos = []    
     for core in cores:
         if core.startswith('user-content-') or 'tree' in core:
             continue
@@ -43,27 +42,29 @@ def main():
         if lower_name in ('distribution_mister', 'downloader_mister') or not lower_name.endswith('mister') or 'linux' in lower_name or 'sd-install' in lower_name:
             continue
 
-        repo = Repo(
+        repos.append(Repo(
             name=name,
             path=f'{delme}/{name}',
             url=f'{core}.git',
             branch=''
-        )
+        ))
+
+    for repo in repos:
+        processes = {}
         repo.process = Popen(['bash', '.github/download_repository.sh', repo.path, repo.url, repo.branch], shell=False, stderr=subprocess.STDOUT)
-        repos.append(repo)
-        processes[name] = repo
+        processes[repo.name] = repo
         
-        while len(processes) > 100:
-            for p in list(processes):
-                repo = processes[p]
-                result = repo.process.poll()
+        while len(processes) >= 100:
+            for p in list(processes.keys()):
+                r = processes[p] 
+                result = r.process.poll()
                 if result is not None:
-                    repo.result = result
-                    repo.process = None
+                    r.result = result
+                    r.process = None
                     processes.pop(p)
-                    print('%s: %s' % (result, repo.url), flush=True)
+                    print('%s: %s' % (result, r.url), flush=True)
             
-            time.sleep(1)
+            time.sleep(0.1)
 
     wait_jobs(repos)
 
@@ -143,12 +144,13 @@ def path_tail(folder, f):
     return f[pos + len(folder) + 1:]
     
 def process_repos(repos: List[Repo]):
-    count = 0
+    total = 0
     for repo in repos:
         if repo.process is not None:
-            count += 1
+            total += 1
 
-    while count < len(repos):
+    count = 0
+    while count < total:
         for repo in repos:
             if repo.process is None:
                 continue
