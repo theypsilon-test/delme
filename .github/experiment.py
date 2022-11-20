@@ -52,6 +52,7 @@ def main():
             url=grepo.ssh_url.replace('git@github.com:', 'https://github.com/'),
             branch=''
         )
+        repo.process = Popen(['bash', '.github/download_repository.sh', repo.path, repo.url, repo.branch], shell=False, stderr=subprocess.STDOUT)
         repos.append(repo)
         processes[grepo.name] = repo
         
@@ -146,11 +147,6 @@ def path_tail(folder, f):
     return f[pos + len(folder) + 1:]
     
 def process_repos(all_repos: List[Repo]):
-    repos = [repo for repo in all_repos if repo.result != 0]
-    for repo in repos:
-        print(repo.name, flush=True)
-        repo.process = Popen(['bash', '.github/download_repository.sh', repo.path, repo.url, repo.branch], shell=False, stderr=subprocess.STDOUT)
-
     count = 0
     while count < len(repos):
         for repo in repos:
