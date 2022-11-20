@@ -88,7 +88,7 @@ def thread_worker(core, category, delme, finish_queue):
     try:
         msg = job(core, category, delme)
     except Exception as e:
-        msg = Exception(f'Exception {type(e).__name__}({e}): {core} {category}')
+        msg = Exception(f'{type(e).__name__}({e}): {core} {category}')
     finish_queue.put(msg, False)
 
 def job(core, category, delme):
