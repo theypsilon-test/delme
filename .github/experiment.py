@@ -30,7 +30,7 @@ def main():
     cores.extend(arcade_cores())
     
     delme = subprocess.run(['mktemp', '-d'], shell=False, stderr=subprocess.STDOUT, stdout=subprocess.PIPE).stdout.decode().strip()
-    mister_devel = Github(os.environ['GITHUB_TOKEN']).get_user('MiSTer-devel')
+    mister_devel = Github(os.environ['GITHUB_TOKEN'])
     
     repos = []
     job_counter = 0
