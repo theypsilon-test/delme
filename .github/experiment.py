@@ -98,6 +98,8 @@ def wait_jobs(finish_queue, job_count, limit):
             finish_queue.task_done()
             job_count -= 1
             print(message, flush=True)
+            if isinstance(message, Exception):
+                raise message
 
     return job_count
 
