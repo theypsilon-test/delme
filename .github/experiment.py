@@ -150,6 +150,8 @@ def process_repos(repos: List[Repo]):
 
     while count < len(repos):
         for repo in repos:
+            if repo.process is None:
+                continue
             result = repo.process.poll()
             if result is not None:
                 count += 1
