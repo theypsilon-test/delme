@@ -38,7 +38,11 @@ def main():
     
     threads = []
     repos = []
+    cache = set()
     for core in cores:
+        if core in cache:
+            continue
+        cache.add(core)
         if core.startswith('user-content-') or 'tree' in core:
             continue
 
