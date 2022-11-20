@@ -18,7 +18,6 @@ class Repo:
     branch: str
     result: int = None
     process: Popen = None
-    retry: int = 0
     files = None
 
 def main():
@@ -146,8 +145,10 @@ def path_tail(folder, f):
 def process_repos(repos: List[Repo]):
     total = 0
     for repo in repos:
-        if repo.process is not None:
+        if repo.process is None and repo.result != 0:
             total += 1
+            repo.process = Popen(['bash', '.github/download_repository.sh', repo.path, repo.url, repo.branch], shell=False, stderr=subprocess.STDOUT)
+            repo.result = None
 
     count = 0
     while count < total:
