@@ -163,7 +163,7 @@ def process_url(core, category, delme):
     else:
         installer = lambda _1, _2, _3, _4: None
 
-    installer(path, target, category, url)
+    #installer(path, target, category, url)
 
     files = {}
     list_repository_files(files, path)
