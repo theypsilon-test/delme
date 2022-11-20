@@ -9,6 +9,7 @@ from typing import List
 from subprocess import Popen
 from pathlib import Path
 import requests
+import re
 
 @dataclass
 class Repo:
@@ -24,7 +25,7 @@ def main():
 
     start = time.time()
 
-    most_cores()
+    cores = most_cores()
     
     delme = subprocess.run(['mktemp', '-d'], shell=False, stderr=subprocess.STDOUT, stdout=subprocess.PIPE).stdout.decode().strip()
     
@@ -82,7 +83,26 @@ def wait_jobs(repos):
 
 def most_cores():
     text = fetch_text('https://raw.githubusercontent.com/wiki/MiSTer-devel/Wiki_MiSTer/_Sidebar.md')
-    print(text)
+    regex = re.compile(r'https://github.com/MiSTer-devel/[a-zA-Z0-9._-]*[_-]MiSTer(/tree/[a-zA-Z0-9-]+)?', re.I)
+    reading = False
+    cores = []
+    for line in text:
+        match = regex.search(line)
+        line = line.strip().lower()
+        if 'fpga cores' in line or 'service cores' in line:
+            reading = True
+        if reading is False:
+            continue
+        if line.startswith('###'):
+            if 'development' in line[4:] or 'arcade cores' in line[4:]:
+                reading = False
+            else:
+                cores.append('user-content-%s' % line[4:].replace(' ', '-'))
+        elif match is not None:
+            core = match.group(0)
+            if 'menu_mister' not in core.lower():
+                cores.append(core)
+    return cores
 
 def fetch_text(url):
     r = requests.get(url)
