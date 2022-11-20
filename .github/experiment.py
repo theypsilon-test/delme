@@ -28,7 +28,6 @@ def main():
     cores = []
     cores.extend(most_cores())
     cores.extend(arcade_cores())
-    print(cores)
     
     delme = subprocess.run(['mktemp', '-d'], shell=False, stderr=subprocess.STDOUT, stdout=subprocess.PIPE).stdout.decode().strip()
     mister_devel = Github(os.environ['GITHUB_TOKEN']).get_user('MiSTer-devel')
@@ -36,6 +35,7 @@ def main():
     repos = []
     job_counter = 0
     for core in cores:
+        print(core)
         if core.startswith('user-content-'):
             continue
         grepo = mister_devel.get_repo(core)
