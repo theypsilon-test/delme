@@ -46,10 +46,12 @@ def main():
             path=f'{delme}/{name}',
             url=f'{core}.git',
             branch=''
-        ))
-
+        ))        
+        
+        
+    processes = {}
+        
     for repo in repos:
-        processes = {}
         repo.process = Popen(['bash', '.github/download_repository.sh', repo.path, repo.url, repo.branch], shell=False, stderr=subprocess.STDOUT)
         processes[repo.name] = repo
         
