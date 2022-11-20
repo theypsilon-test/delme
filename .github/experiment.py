@@ -35,6 +35,7 @@ def main():
     repos = []
     job_counter = 0
     for core in cores:
+        print(core)
         if core.startswith('user-content-'):
             continue
         core = core + '.git'
