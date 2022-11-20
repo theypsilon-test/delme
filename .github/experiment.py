@@ -25,15 +25,20 @@ def main():
 
     start = time.time()
 
-    cores = most_cores()
+    cores = []
+    cores.extend(most_cores())
     cores.extend(arcade_cores())
     print(cores)
     
     delme = subprocess.run(['mktemp', '-d'], shell=False, stderr=subprocess.STDOUT, stdout=subprocess.PIPE).stdout.decode().strip()
+    mister_devel = Github(os.environ['GITHUB_TOKEN']).get_user('MiSTer-devel')
     
     repos = []
     job_counter = 0
-    for grepo in Github(os.environ['GITHUB_TOKEN']).get_user('MiSTer-devel').get_repos():
+    for core in cores:
+        if core.startswith('user-content-'):
+            continue
+        grepo = mister_devel.get_repo(core)
         lower_name = grepo.name.lower()
         if lower_name in ('distribution_mister', 'downloader_mister') or not lower_name.endswith('mister') or 'linux' in lower_name or 'sd-install' in lower_name:
             continue
