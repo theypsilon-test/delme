@@ -27,11 +27,29 @@ def main():
     start = time.time()
 
     cores = []
+    cores.extend(['https://github.com/MiSTer-devel/Main_MiSTer', 'https://github.com/MiSTer-devel/Menu_MiSTer'])
+    cores.extend(['user-content-mra-alternatives', 'https://github.com/MiSTer-devel/MRA-Alternatives_MiSTer'])
     cores.extend(most_cores())
-    cores.extend(arcade_cores())
-    
+    cores.extend(['user-content-arcade-cores', *arcade_cores()])
+    cores.extend(["user-content-fonts", "https://github.com/MiSTer-devel/Fonts_MiSTer"])
+    cores.extend(["user-content-folders-Filters|Filters_Audio|Gamma", "https://github.com/MiSTer-devel/Filters_MiSTer"])
+    cores.extend(["user-content-folders-Shadow_Masks", "https://github.com/MiSTer-devel/ShadowMasks_MiSTer"])
+    cores.extend(["user-content-folders-Presets", "https://github.com/MiSTer-devel/Presets_MiSTer"])
+    cores.extend(["user-content-scripts"])
+    cores.extend(["https://raw.githubusercontent.com/MiSTer-devel/Scripts_MiSTer/master/ini_settings.sh"])
+    cores.extend(["https://raw.githubusercontent.com/MiSTer-devel/Scripts_MiSTer/master/samba_on.sh"])
+    cores.extend(["https://raw.githubusercontent.com/MiSTer-devel/Scripts_MiSTer/master/other_authors/fast_USB_polling_on.sh"])
+    cores.extend(["https://raw.githubusercontent.com/MiSTer-devel/Scripts_MiSTer/master/other_authors/fast_USB_polling_off.sh"])
+    cores.extend(["https://raw.githubusercontent.com/MiSTer-devel/Scripts_MiSTer/master/other_authors/wifi.sh"])
+    cores.extend(["https://raw.githubusercontent.com/MiSTer-devel/Scripts_MiSTer/master/rtc.sh"])
+    cores.extend(["https://raw.githubusercontent.com/MiSTer-devel/Scripts_MiSTer/master/timezone.sh"])
+    cores.extend(["user-content-linux-binary", "https://github.com/MiSTer-devel/PDFViewer_MiSTer"])
+    cores.extend(["user-content-empty-folder", "games/TGFX16-CD"])
+    cores.extend(["user-content-gamecontrollerdb", "https://raw.githubusercontent.com/MiSTer-devel/Gamecontrollerdb_MiSTer/main/gamecontrollerdb.txt"])
+    cores.extend(["user-cheats", "https://gamehacking.org/mister/"])
+
     delme = subprocess.run(['mktemp', '-d'], shell=False, stderr=subprocess.STDOUT, stdout=subprocess.PIPE).stdout.decode().strip()
-    category = ''
+    category = 'main'
 
     finish_queue = queue.Queue()
     job_count = 0
@@ -40,11 +58,13 @@ def main():
     repos = []
     cache = set()
     for core in cores:
+        if core.startswith('user-') or 'tree' in core:
+            category = core
+            continue
+
         if core in cache:
             continue
         cache.add(core)
-        if core.startswith('user-content-') or 'tree' in core:
-            continue
 
         thread = Thread(target=thread_worker, args=(core, category, delme, finish_queue))
         thread.start()
@@ -80,6 +100,9 @@ def job(core, category, delme):
     raise error
 
 def process(core, category, delme):
+    if not core.startswith('https://github.com/MiSTer-devel/'):
+        return core
+
     name = path_tail('https://github.com/MiSTer-devel', core)
     url = f'{core}.git'
     path = f'{delme}/{name}'
