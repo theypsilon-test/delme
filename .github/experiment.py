@@ -147,7 +147,10 @@ def path_tail(folder, f):
 def process_repos(repos: List[Repo]):
     total = 0
     for repo in repos:
-        if repo.process is None and repo.result != 0:
+        if repo.process is not None:
+            total += 1
+            continue
+        if repo.result != 0:
             total += 1
             repo.process = Popen(['bash', '.github/download_repository.sh', repo.path, repo.url, repo.branch], shell=False, stderr=subprocess.STDOUT)
             repo.result = None
