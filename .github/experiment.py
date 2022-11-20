@@ -93,7 +93,7 @@ def most_cores():
     regex = re.compile(r'https://github.com/MiSTer-devel/[a-zA-Z0-9._-]*[_-]MiSTer(/tree/[a-zA-Z0-9-]+)?', re.I)
     reading = False
     cores = []
-    for line in text:
+    for line in text.splitlines():
         match = regex.search(line)
         line = line.strip().lower()
         if 'fpga cores' in line or 'service cores' in line:
@@ -115,7 +115,7 @@ def arcade_cores():
     text = fetch_text('https://raw.githubusercontent.com/wiki/MiSTer-devel/Wiki_MiSTer/Arcade-Cores-List.md')
     cores = []
     regex = re.compile(r'https://github.com/MiSTer-devel/[a-zA-Z0-9._-]*[_-]MiSTer[^\/]', re.I)
-    for line in sys.stdin.readlines():
+    for line in text.splitlines():
         match = regex.search(line)
         if match is not None:
             cores.append(match.group(0)[0:-1])
