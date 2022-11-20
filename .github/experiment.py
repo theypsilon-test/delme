@@ -11,6 +11,7 @@ import requests
 import re
 from threading import Thread
 import queue
+import shutil
 
 @dataclass
 class Repo:
@@ -127,9 +128,13 @@ def process_url(core, category, delme):
     path = f'{delme}/{name}'
     branch = ''
 
-    result = subprocess.run(['bash', '.github/download_repository.sh', path, url, branch], shell=False, stderr=subprocess.DEVNULL)
-    if result.returncode != 0:
-        raise Exception(f'returncode {result.returncode}')
+    shutil.rmtree(path, ignore_errors=True)
+    os.makedirs(path, exist_ok=True)
+
+    run(['git', 'init', '-q'], cwd=path)
+    run(['git', 'remote', 'add', 'origin', url], cwd=path)
+    run(['git', '-c', 'protocol.version=2', 'fetch', '--depth=1', '-q', '--no-tags', '--prune', '--no-recurse-submodules', 'origin', branch], cwd=path)
+    run(['git', 'checkout', '-qF', 'FETCH_HEAD'], cwd=path)
     
     files = {}
     list_repository_files(files, path)
@@ -138,6 +143,11 @@ def process_url(core, category, delme):
             path_tail(path, f)
 
     return url
+
+def run(command, path):
+    result = subprocess.run(command, cwd=path, shell=False, stderr=subprocess.DEVNULL)
+    if result.returncode != 0:
+        raise Exception(f'returncode {result.returncode}')
 
 def wait_jobs(finish_queue, job_count, limit):
     while job_count > limit:
