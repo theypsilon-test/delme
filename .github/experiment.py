@@ -8,6 +8,7 @@ from dataclasses import dataclass
 from typing import List
 from subprocess import Popen
 from pathlib import Path
+import requests
 
 @dataclass
 class Repo:
@@ -23,10 +24,11 @@ def main():
 
     start = time.time()
 
-    repos = []
+    most_cores()
     
     delme = subprocess.run(['mktemp', '-d'], shell=False, stderr=subprocess.STDOUT, stdout=subprocess.PIPE).stdout.decode().strip()
     
+    repos = []
     job_counter = 0
     for grepo in Github(os.environ['GITHUB_TOKEN']).get_user('MiSTer-devel').get_repos():
         lower_name = grepo.name.lower()
@@ -78,6 +80,17 @@ def wait_jobs(repos):
     if not repos_downloaded(repos):
         raise Exception('Some repos didnt download!')
 
+def most_cores():
+    text = fetch_text('https://raw.githubusercontent.com/wiki/MiSTer-devel/Wiki_MiSTer/_Sidebar.md')
+    print(text)
+
+def fetch_text(url):
+    r = requests.get(url)
+    if r.status_code != 200:
+        raise Exception(f'Request to {url} failed')
+    
+    return r.text
+        
 def path_tail(folder, f):
     pos = f.find(folder)
     return f[pos + len(folder) + 1:]
