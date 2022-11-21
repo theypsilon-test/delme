@@ -143,27 +143,18 @@ late_install = {
 repo_regex = re.compile(r'^([a-zA-Z]+://)?github.com(:[0-9]+)?/([a-zA-Z0-9_-]*)/([a-zA-Z0-9_-]*)(/tree/([a-zA-Z0-9_-]+))?$')
 
 def process_url(core, category, delme):
-    name = path_tail('https://github.com/MiSTer-devel', core)
     url = f'{core}.git'
-    path = f'{delme}/{name}'
     target = '.'
 
     if category in early_install:
         return early_install[cateogory](url, target) or core
 
+    name = path_tail('https://github.com/MiSTer-devel', core)
+    name, branch = get_branch(name)
+    print(f'name: {name} branch: {branch}')
+    path = f'{delme}/{name}'
 
-    match = repo_regex.match(core)
-    if match is not None:
-        return f'WARNING! Wrong repository url: "{core}".'
-
-    owner = str(match.group(3))
-    repo = str(match.group(4))
-    try:
-        branch = str(match.group(6))
-    except:
-        branch = ''
-
-    download_repository(path, f'https://github.com/{owner}/{repo}.git', branch)
+    download_repository(path, url, branch)
 
     installer = None
     if category in late_install:
@@ -184,7 +175,6 @@ def process_url(core, category, delme):
     return url
 
 def download_repository(path, url, branch):
-    print(url, flush=True)
     shutil.rmtree(path, ignore_errors=True)
     os.makedirs(path, exist_ok=True)
     run('git init -q', path)
@@ -252,6 +242,12 @@ def fetch_text(url):
 def path_tail(folder, f):
     pos = f.find(folder)
     return f[pos + len(folder) + 1:]
+
+def get_branch(name):
+    pos = name.find('/tree/')
+    if pos == -1:
+        return name, ""
+    return name[0:pos], name[pos + len('/tree/'):]
 
 def list_repository_files(files, path):
     for content_folder in ['releases', 'Palette', 'Palettes', 'palettes']:
