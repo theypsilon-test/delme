@@ -152,7 +152,7 @@ def process_url(core, category, delme):
         return early_install[cateogory](url, target) or core
 
 
-    match = repo_regex.search(core)
+    match = repo_regex.match(core)
     if match is not None:
         return f'WARNING! Wrong repository url: "{core}".'
 
@@ -184,6 +184,7 @@ def process_url(core, category, delme):
     return url
 
 def download_repository(path, url, branch):
+    print(url, flush=True)
     shutil.rmtree(path, ignore_errors=True)
     os.makedirs(path, exist_ok=True)
     run('git init -q', path)
