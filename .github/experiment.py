@@ -156,9 +156,12 @@ def process_url(core, category, delme):
     if match is not None:
         return f'WARNING! Wrong repository url: "{core}".'
 
-    owner = match.group(3)
-    repo = match.group(4)
-    branch = match.group(6)
+    owner = str(match.group(3))
+    repo = str(match.group(4))
+    try:
+        branch = str(match.group(6))
+    except:
+        branch = ''
 
     download_repository(path, f'https://github.com/{owner}/{repo}.git', branch)
 
