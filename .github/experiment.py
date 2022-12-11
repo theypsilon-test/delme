@@ -137,6 +137,7 @@ def job(core, category, delme):
         try:
             return process_url(core, category, delme)
         except Exception as e:
+            print(e)
             error = e
             time.sleep(0.5)
     raise error
