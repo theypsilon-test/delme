@@ -52,6 +52,7 @@ def main():
 
     for url in core_urls:
         for category in core_categories[url]:
+            print(f'url: {url} category: {category}')
             thread = Thread(target=thread_worker, args=(url, category, delme, finish_queue))
             thread.start()
             threads.append(thread)
