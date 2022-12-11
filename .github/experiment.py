@@ -24,31 +24,23 @@ class Repo:
     process: Popen = None
     files = None
 
+
+def is_standard_core(category):
+    return category in ["_Computer", "_Arcade", "_Console", "_Other", "_Utility"]
+
 def main():
 
     start = time.time()
 
-    cores = []
-    cores.extend(['https://github.com/MiSTer-devel/Main_MiSTer', 'https://github.com/MiSTer-devel/Menu_MiSTer'])
-    cores.extend(['user-content-mra-alternatives', 'https://github.com/MiSTer-devel/MRA-Alternatives_MiSTer'])
-    cores.extend(most_cores())
-    cores.extend(['user-content-arcade-cores', *arcade_cores()])
-    cores.extend(["user-content-fonts", "https://github.com/MiSTer-devel/Fonts_MiSTer"])
-    cores.extend(["user-content-folders-Filters|Filters_Audio|Gamma", "https://github.com/MiSTer-devel/Filters_MiSTer"])
-    cores.extend(["user-content-folders-Shadow_Masks", "https://github.com/MiSTer-devel/ShadowMasks_MiSTer"])
-    cores.extend(["user-content-folders-Presets", "https://github.com/MiSTer-devel/Presets_MiSTer"])
-    cores.extend(["user-content-scripts"])
-    cores.extend(["https://raw.githubusercontent.com/MiSTer-devel/Scripts_MiSTer/master/ini_settings.sh"])
-    cores.extend(["https://raw.githubusercontent.com/MiSTer-devel/Scripts_MiSTer/master/samba_on.sh"])
-    cores.extend(["https://raw.githubusercontent.com/MiSTer-devel/Scripts_MiSTer/master/other_authors/fast_USB_polling_on.sh"])
-    cores.extend(["https://raw.githubusercontent.com/MiSTer-devel/Scripts_MiSTer/master/other_authors/fast_USB_polling_off.sh"])
-    cores.extend(["https://raw.githubusercontent.com/MiSTer-devel/Scripts_MiSTer/master/other_authors/wifi.sh"])
-    cores.extend(["https://raw.githubusercontent.com/MiSTer-devel/Scripts_MiSTer/master/rtc.sh"])
-    cores.extend(["https://raw.githubusercontent.com/MiSTer-devel/Scripts_MiSTer/master/timezone.sh"])
-    cores.extend(["user-content-linux-binary", "https://github.com/MiSTer-devel/PDFViewer_MiSTer"])
-    cores.extend(["user-content-empty-folder", "games/TGFX16-CD"])
-    cores.extend(["user-content-gamecontrollerdb", "https://raw.githubusercontent.com/MiSTer-devel/Gamecontrollerdb_MiSTer/main/gamecontrollerdb.txt"])
-    cores.extend(["user-cheats", "https://gamehacking.org/mister/"])
+    core_urls = fetch_core_urls()
+
+    print()
+    print('CORE URLs:')
+    for url in core_urls:
+        print(url)
+    print()
+
+    core_categories = classify_core_categories(core_urls)
 
     delme = subprocess.run(['mktemp', '-d'], shell=False, stderr=subprocess.STDOUT, stdout=subprocess.PIPE).stdout.decode().strip()
     category = 'main'
@@ -57,24 +49,15 @@ def main():
     job_count = 0
     
     threads = []
-    repos = []
-    cache = set()
-    for core in cores:
-        if core.startswith('user-') or 'tree' in core:
-            category = categorize(core)
-            continue
 
-        if core in cache:
-            continue
-        cache.add(core)
+    for url in core_urls:
+        for category in core_categories[url]:
+            thread = Thread(target=thread_worker, args=(url, category, delme, finish_queue))
+            thread.start()
+            threads.append(thread)
+            job_count += 1
+            job_count = wait_jobs(finish_queue, job_count, 30)
 
-        thread = Thread(target=thread_worker, args=(core, category, delme, finish_queue))
-        thread.start()
-        threads.append(thread)
-
-        job_count += 1
-        job_count = wait_jobs(finish_queue, job_count, 30)
-        
     wait_jobs(finish_queue, job_count, 0)
 
     print()
@@ -82,6 +65,62 @@ def main():
     end = time.time()
     print(end - start)
     print()
+
+def fetch_core_urls():
+    core_urls = []
+    core_urls.extend(['https://github.com/MiSTer-devel/Main_MiSTer', 'https://github.com/MiSTer-devel/Menu_MiSTer'])
+    core_urls.extend(['user-content-mra-alternatives', 'https://github.com/MiSTer-devel/MRA-Alternatives_MiSTer'])
+    core_urls.extend(most_cores())
+    core_urls.extend(['user-content-arcade-cores', *arcade_cores()])
+    core_urls.extend(["user-content-fonts", "https://github.com/MiSTer-devel/Fonts_MiSTer"])
+    core_urls.extend(["user-content-folders-Filters|Filters_Audio|Gamma", "https://github.com/MiSTer-devel/Filters_MiSTer"])
+    core_urls.extend(["user-content-folders-Shadow_Masks", "https://github.com/MiSTer-devel/ShadowMasks_MiSTer"])
+    core_urls.extend(["user-content-folders-Presets", "https://github.com/MiSTer-devel/Presets_MiSTer"])
+    core_urls.extend(["user-content-scripts"])
+    core_urls.extend(["https://raw.githubusercontent.com/MiSTer-devel/Scripts_MiSTer/master/ini_settings.sh"])
+    core_urls.extend(["https://raw.githubusercontent.com/MiSTer-devel/Scripts_MiSTer/master/samba_on.sh"])
+    core_urls.extend(["https://raw.githubusercontent.com/MiSTer-devel/Scripts_MiSTer/master/other_authors/fast_USB_polling_on.sh"])
+    core_urls.extend(["https://raw.githubusercontent.com/MiSTer-devel/Scripts_MiSTer/master/other_authors/fast_USB_polling_off.sh"])
+    core_urls.extend(["https://raw.githubusercontent.com/MiSTer-devel/Scripts_MiSTer/master/other_authors/wifi.sh"])
+    core_urls.extend(["https://raw.githubusercontent.com/MiSTer-devel/Scripts_MiSTer/master/rtc.sh"])
+    core_urls.extend(["https://raw.githubusercontent.com/MiSTer-devel/Scripts_MiSTer/master/timezone.sh"])
+    core_urls.extend(["user-content-linux-binary", "https://github.com/MiSTer-devel/PDFViewer_MiSTer"])
+    core_urls.extend(["user-content-empty-folder", "games/TGFX16-CD"])
+    core_urls.extend(["user-content-gamecontrollerdb", "https://raw.githubusercontent.com/MiSTer-devel/Gamecontrollerdb_MiSTer/main/gamecontrollerdb.txt"])
+    core_urls.extend(["user-cheats", "https://gamehacking.org/mister/"])
+    return core_urls
+
+def classify_core_categories(core_urls):
+    current_core_category = 'main'
+    core_categories = {}
+    for url in core_urls:
+        if url == "user-content-computers---classic": current_core_category = "_Computer"
+        elif url == "user-content-arcade-cores": current_core_category = "_Arcade"
+        elif url == "user-content-consoles---classic": current_core_category = "_Console"
+        elif url == "user-content-other-systems": current_core_category = "_Other"
+        elif url == "user-content-service-cores": current_core_category = "_Utility"
+        elif url == "user-content-linux-binary": current_core_category = url
+        elif url == "user-content-zip-release": current_core_category = url
+        elif url == "user-content-scripts": current_core_category = url
+        elif url == "user-cheats": current_core_category = url
+        elif url == "user-content-empty-folder": current_core_category = url
+        elif url == "user-content-gamecontrollerdb": current_core_category = url
+        elif url.startswith("user-content-folders-"): current_core_category = url
+        elif url == "user-content-mra-alternatives": current_core_category = url
+        elif url == "user-content-mra-alternatives-under-releases": current_core_category = url
+        elif url == "user-content-fonts": current_core_category = url
+        elif url in ["user-content-fpga-cores", "user-content-development", ""]: pass
+        else:
+            if url not in core_categories:
+                core_categories[url] = [current_core_category]
+            elif is_standard_core(core_categories[url][0]) and is_standard_core(current_core_category):
+                core_categories[url].append(current_core_category)
+                #print(f'lets break here {core_categories[url]}:{current_core_category}')
+                #raise ValueError(f'lets break here {core_categories[url]}:{current_core_category}')
+            elif current_core_category not in core_categories[url]:
+                print(f'Already processed {url} as {core_categories[url][0]}. Tried to be processed again as {current_core_category}.')
+
+    return core_categories
 
 def thread_worker(core, category, delme, finish_queue):
     msg = ''
@@ -100,25 +139,6 @@ def job(core, category, delme):
             error = e
             time.sleep(0.5)
     raise error
-
-def categorize(url):
-    if url == "user-content-computers---classic": return "_Computer"
-    elif url == "user-content-computers---classic": return "_Computer"
-    elif url == "user-content-arcade-cores": return "_Arcade"
-    elif url == "user-content-consoles---classic": return "_Console"
-    elif url == "user-content-other-systems": return "_Other"
-    elif url == "user-content-service-cores": return "_Utility"
-    elif url == "user-content-linux-binary": return url
-    elif url == "user-content-zip-release": return url
-    elif url == "user-content-scripts": return url
-    elif url == "user-cheats": return url
-    elif url == "user-content-empty-folder": return url
-    elif url == "user-content-gamecontrollerdb": return url
-    elif url.startswith("user-content-folders-"): return url
-    elif url == "user-content-mra-alternatives": return url
-    elif url == "user-content-mra-alternatives-under-releases": return url
-    elif url == "user-content-fonts": return url
-    else: return ""
 
 
 early_install = {
