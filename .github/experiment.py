@@ -306,7 +306,7 @@ def job(core, category, delme):
     error = None
     for i in range(10):
         try:
-            process_url(core, category, delme)
+            return process_url(core, category, delme)
         except Exception as e:
             print(f'WARNING! {core}:{category} failed {i}')
             error = e
@@ -336,7 +336,7 @@ def download_repository(path, url, branch):
     run('git checkout -qf FETCH_HEAD', path)
 
 def run(command, path):
-    result = subprocess.run(shlex.split(command), cwd=path, shell=False, stderr=subprocess.DEVNULL)
+    result = subprocess.run(shlex.split(command), cwd=path, shell=False, stderr=subprocess.STDOUT)
     if result.returncode == -2:
         raise KeyboardInterrupt()
     elif result.returncode != 0:
