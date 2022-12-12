@@ -35,12 +35,6 @@ def main():
     start = time.time()
 
     core_urls = fetch_core_urls()
-
-    print('CORE URLs:')
-    for url in core_urls:
-        print(url)
-    print()
-
     core_categories = classify_core_categories(core_urls)
 
     print('Categories:')
@@ -116,13 +110,10 @@ def process_all(core_categories):
     finish_queue = queue.Queue()
     job_count = 0
     
-    threads = []
-
     for url in core_categories:
         for category in core_categories[url]:
             thread = Thread(target=thread_worker, args=(url, category, delme, finish_queue))
             thread.start()
-            threads.append(thread)
             job_count += 1
             job_count = wait_jobs(finish_queue, job_count, 30)
 
@@ -296,12 +287,19 @@ def list_files(directory):
         elif f.is_file():
             yield f.path
 
+class Error:
+    def __init__(self, e):
+        self.e = e
+
 def thread_worker(core, category, delme, finish_queue):
     error = None
     try:
         job(core, category, delme)
-    except Exception as e:
+    except BaseException as e:
         error = e
+    except:
+        error = SystemError("Unknown")
+
     finish_queue.put(error, False)
 
 def job(core, category, delme):
@@ -309,8 +307,6 @@ def job(core, category, delme):
     for i in range(10):
         try:
             process_url(core, category, delme)
-        except KeyboardInterrupt as e:
-            raise e
         except Exception as e:
             print(f'WARNING! {core}:{category} failed {i}')
             error = e
@@ -320,11 +316,11 @@ def job(core, category, delme):
 def wait_jobs(finish_queue, job_count, limit):
     while job_count > limit:
         while not finish_queue.empty():
-            message = finish_queue.get(False)
+            error = finish_queue.get(False)
             finish_queue.task_done()
             job_count -= 1
-            if isinstance(message, Exception):
-                raise message
+            if error is not None:
+                raise error
 
     return job_count
 
@@ -341,7 +337,9 @@ def download_repository(path, url, branch):
 
 def run(command, path):
     result = subprocess.run(shlex.split(command), cwd=path, shell=False, stderr=subprocess.DEVNULL)
-    if result.returncode != 0:
+    if result.returncode == -2:
+        raise KeyboardInterrupt()
+    elif result.returncode != 0:
         print(f'returncode {result.returncode} from: {command}')
         raise Exception(f'returncode {result.returncode} from: {command}')
 
