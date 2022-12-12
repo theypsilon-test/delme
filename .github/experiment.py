@@ -55,25 +55,6 @@ def main():
     print(end - start)
     print()
 
-def process_all(core_categories):
-    delme = subprocess.run(['mktemp', '-d'], shell=False, stderr=subprocess.STDOUT, stdout=subprocess.PIPE).stdout.decode().strip()
-
-    finish_queue = queue.Queue()
-    job_count = 0
-    
-    threads = []
-
-    for url in core_categories:
-        for category in core_categories[url]:
-            #if 'GBA2P' not in url: continue
-            thread = Thread(target=thread_worker, args=(url, category, delme, finish_queue))
-            thread.start()
-            threads.append(thread)
-            job_count += 1
-            job_count = wait_jobs(finish_queue, job_count, 30)
-
-    wait_jobs(finish_queue, job_count, 0)
-
 
 def fetch_core_urls():
     core_urls = []
@@ -124,57 +105,28 @@ def classify_core_categories(core_urls):
                 core_categories[url] = [current_core_category]
             elif is_standard_core(core_categories[url][0]) and is_standard_core(current_core_category):
                 core_categories[url].append(current_core_category)
-                #print(f'lets break here {core_categories[url]}:{current_core_category}')
-                #raise ValueError(f'lets break here {core_categories[url]}:{current_core_category}')
             elif current_core_category not in core_categories[url]:
                 print(f'Already processed {url} as {core_categories[url][0]}. Tried to be processed again as {current_core_category}.')
 
     return core_categories
 
-def thread_worker(core, category, delme, finish_queue):
-    msg = ''
-    try:
-        msg = job(core, category, delme)
-    except KeyboardInterrupt as e:
-        msg = 'Skip'
-    except Exception as e:
-        msg = Exception(f'{type(e).__name__}({e}): {core} {category}')
-    finish_queue.put(msg, False)
+def process_all(core_categories):
+    delme = subprocess.run(['mktemp', '-d'], shell=False, stderr=subprocess.STDOUT, stdout=subprocess.PIPE).stdout.decode().strip()
 
-def job(core, category, delme):
-    error = None
-    for i in range(10):
-        try:
-            return process_url(core, category, delme)
-        except KeyboardInterrupt as e:
-            raise e
-        except Exception as e:
-            print(f'WARNING! {core}:{category} failed {i}')
-            error = e
-            time.sleep(0.5 + random() * 5)
-    raise error
+    finish_queue = queue.Queue()
+    job_count = 0
+    
+    threads = []
 
+    for url in core_categories:
+        for category in core_categories[url]:
+            thread = Thread(target=thread_worker, args=(url, category, delme, finish_queue))
+            thread.start()
+            threads.append(thread)
+            job_count += 1
+            job_count = wait_jobs(finish_queue, job_count, 30)
 
-early_install = {
-    'user-content-scripts': lambda _1, _2: None,
-    'user-content-empty-folder': lambda _1, _2: None,
-    'user-cheats': lambda _1, _2: None,
-    'user-content-gamecontrollerdb': lambda _1, _2: None,
-}
-
-late_install = {
-    "_Arcade": lambda _1, _2, _3, _4: None,
-    "_Computer": lambda _1, _2, _3, _4: None,
-    "_Console": lambda _1, _2, _3, _4: None,
-    "main": lambda _1, _2, _3, _4: None,
-    "user-content-zip-release": lambda _1, _2, _3, _4: None,
-    "user-content-linux-binary": lambda _1, _2, _3, _4: None,
-    "user-content-fonts": lambda _1, _2, _3, _4: None,
-    "user-content-mra-alternatives": lambda _1, _2, _3, _4: None,
-    "user-content-mra-alternatives-under-releases": lambda _1, _2, _3, _4: None,
-}
-
-repo_regex = re.compile(r'^([a-zA-Z]+://)?github.com(:[0-9]+)?/([a-zA-Z0-9_-]*)/([a-zA-Z0-9_-]*)(/tree/([a-zA-Z0-9_-]+))?$')
+    wait_jobs(finish_queue, job_count, 0)
 
 def process_url(core, category, delme):
     print(f'{core} {category}')
@@ -201,9 +153,9 @@ def process_url(core, category, delme):
     if category in late_install:
         installer = late_install[category]
     elif category.startswith('user-content-folders-'):
-        installer = lambda _1, _2, _3, _4: None
+        installer = install_folders
     else:
-        installer = lambda _1, _2, _3, _4: None
+        installer = install_other_core
 
     installer(path, target, category, url)
 
@@ -214,6 +166,74 @@ def process_url(core, category, delme):
             path_tail(path, f)
 
     return url
+
+def install_arcade_core(path, target, category, url):
+    pass
+
+def install_console_core(path, target, category, url):
+    pass
+
+def install_computer_core(path, target, category, url):
+    pass
+
+def install_other_core(path, target, category, url):
+    pass
+
+def install_main_binary(path, target, category, url):
+    pass
+
+def install_zip_release(path, target, category, url):
+    pass
+
+def install_linux_binary(path, target, category, url):
+    pass
+
+def install_fonts(path, target, category, url):
+    pass
+
+def install_mra_alternatives(path, target, category, url):
+    pass
+
+def install_mra_alternatives_under_releases(path, target, category, url):
+    pass
+
+def install_folders(path, target, category, url):
+    pass
+
+def install_atari800(path, target, category, url):
+    pass
+
+
+late_install = {
+    "_Arcade": install_arcade_core,
+    "_Computer": install_computer_core,
+    "_Console": install_console_core,
+    "main": install_main_binary,
+    "user-content-zip-release": install_zip_release,
+    "user-content-linux-binary": install_linux_binary,
+    "user-content-fonts": install_fonts,
+    "user-content-mra-alternatives": install_mra_alternatives,
+    "user-content-mra-alternatives-under-releases": install_mra_alternatives_under_releases,
+}
+
+def install_script(url, target):
+    pass
+
+def install_empty_folder(url, target):
+    pass
+
+def install_gamecontrollerdb(url, target):
+    pass
+
+def install_cheats(url, target):
+    pass
+
+early_install = {
+    'user-content-scripts': install_script,
+    'user-content-empty-folder': install_empty_folder,
+    'user-cheats': install_cheats,
+    'user-content-gamecontrollerdb': install_gamecontrollerdb,
+}
 
 def download_repository(path, url, branch):
     shutil.rmtree(path, ignore_errors=True)
@@ -308,6 +328,29 @@ def list_files(directory):
             yield from list_files(f.path)
         elif f.is_file():
             yield f.path
+
+def thread_worker(core, category, delme, finish_queue):
+    msg = ''
+    try:
+        msg = job(core, category, delme)
+    except KeyboardInterrupt as e:
+        msg = 'Skip'
+    except Exception as e:
+        msg = Exception(f'{type(e).__name__}({e}): {core} {category}')
+    finish_queue.put(msg, False)
+
+def job(core, category, delme):
+    error = None
+    for i in range(10):
+        try:
+            return process_url(core, category, delme)
+        except KeyboardInterrupt as e:
+            raise e
+        except Exception as e:
+            print(f'WARNING! {core}:{category} failed {i}')
+            error = e
+            time.sleep(0.5 + random() * 5)
+    raise error
 
 if __name__ == '__main__':
     try:
