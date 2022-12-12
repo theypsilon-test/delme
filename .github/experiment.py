@@ -296,9 +296,9 @@ def thread_worker(core, category, delme, finish_queue):
     try:
         job(core, category, delme)
     except BaseException as e:
-        error = e
+        error = Error(e)
     except:
-        error = SystemError("Unknown")
+        error = Error(SystemError("Unknown"))
 
     finish_queue.put(error, False)
 
@@ -320,7 +320,7 @@ def wait_jobs(finish_queue, job_count, limit):
             finish_queue.task_done()
             job_count -= 1
             if error is not None:
-                raise error
+                raise error.e
 
     return job_count
 
