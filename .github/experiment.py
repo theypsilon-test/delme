@@ -233,8 +233,6 @@ def run(command, path):
         raise Exception(f'returncode {result.returncode} from: {command}')
 
 def wait_jobs(finish_queue, job_count, limit):
-    if job_count > limit:
-        print(f'Waiting #{limit - job_count} jobs.')
     while job_count > limit:
         while not finish_queue.empty():
             message = finish_queue.get(False)
