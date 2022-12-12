@@ -189,6 +189,12 @@ def process_url(core, category, delme):
 
     path = f'{delme}/{name}'
 
+    if category[0] == '_':
+        path = path + category
+    
+    if len(branch) > 0:
+        path = path + branch
+
     download_repository(path, url, branch)
 
     installer = None
