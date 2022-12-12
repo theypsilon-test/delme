@@ -159,16 +159,12 @@ def process_url(core, category, delme):
 
     installer(path, target, category, url)
 
+def install_arcade_core(path, target, category, url):
     files = {}
     list_repository_files(files, path)
     for folder in files:
         for f in files[folder]:
             path_tail(path, f)
-
-    return url
-
-def install_arcade_core(path, target, category, url):
-    pass
 
 def install_console_core(path, target, category, url):
     pass
@@ -234,35 +230,6 @@ early_install = {
     'user-cheats': install_cheats,
     'user-content-gamecontrollerdb': install_gamecontrollerdb,
 }
-
-def download_repository(path, url, branch):
-    shutil.rmtree(path, ignore_errors=True)
-    os.makedirs(path, exist_ok=True)
-
-    url = url.replace(f'/tree/{branch}', '')
-
-    run('git init -q', path)
-    run('git remote add origin ' + url, path)
-    run('git -c protocol.version=2 fetch --depth=1 -q --no-tags --prune --no-recurse-submodules origin ' + branch, path)
-    run('git checkout -qf FETCH_HEAD', path)
-
-def run(command, path):
-    result = subprocess.run(shlex.split(command), cwd=path, shell=False, stderr=subprocess.DEVNULL)
-    if result.returncode != 0:
-        print(f'returncode {result.returncode} from: {command}')
-        raise Exception(f'returncode {result.returncode} from: {command}')
-
-def wait_jobs(finish_queue, job_count, limit):
-    while job_count > limit:
-        while not finish_queue.empty():
-            message = finish_queue.get(False)
-            finish_queue.task_done()
-            job_count -= 1
-            print(message, flush=True)
-            if isinstance(message, Exception):
-                raise message
-
-    return job_count
 
 def most_cores():
     text = fetch_text('https://raw.githubusercontent.com/wiki/MiSTer-devel/Wiki_MiSTer/_Sidebar.md')
@@ -330,20 +297,18 @@ def list_files(directory):
             yield f.path
 
 def thread_worker(core, category, delme, finish_queue):
-    msg = ''
+    error = None
     try:
-        msg = job(core, category, delme)
-    except KeyboardInterrupt as e:
-        msg = 'Skip'
+        job(core, category, delme)
     except Exception as e:
-        msg = Exception(f'{type(e).__name__}({e}): {core} {category}')
-    finish_queue.put(msg, False)
+        error = e
+    finish_queue.put(error, False)
 
 def job(core, category, delme):
     error = None
     for i in range(10):
         try:
-            return process_url(core, category, delme)
+            process_url(core, category, delme)
         except KeyboardInterrupt as e:
             raise e
         except Exception as e:
@@ -351,6 +316,34 @@ def job(core, category, delme):
             error = e
             time.sleep(0.5 + random() * 5)
     raise error
+
+def wait_jobs(finish_queue, job_count, limit):
+    while job_count > limit:
+        while not finish_queue.empty():
+            message = finish_queue.get(False)
+            finish_queue.task_done()
+            job_count -= 1
+            if isinstance(message, Exception):
+                raise message
+
+    return job_count
+
+def download_repository(path, url, branch):
+    shutil.rmtree(path, ignore_errors=True)
+    os.makedirs(path, exist_ok=True)
+
+    url = url.replace(f'/tree/{branch}', '')
+
+    run('git init -q', path)
+    run('git remote add origin ' + url, path)
+    run('git -c protocol.version=2 fetch --depth=1 -q --no-tags --prune --no-recurse-submodules origin ' + branch, path)
+    run('git checkout -qf FETCH_HEAD', path)
+
+def run(command, path):
+    result = subprocess.run(shlex.split(command), cwd=path, shell=False, stderr=subprocess.DEVNULL)
+    if result.returncode != 0:
+        print(f'returncode {result.returncode} from: {command}')
+        raise Exception(f'returncode {result.returncode} from: {command}')
 
 if __name__ == '__main__':
     try:
