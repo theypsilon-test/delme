@@ -13,6 +13,8 @@ from threading import Thread
 import queue
 import shutil
 import shlex
+import json
+from random import random
 
 @dataclass
 class Repo:
@@ -34,7 +36,6 @@ def main():
 
     core_urls = fetch_core_urls()
 
-    print()
     print('CORE URLs:')
     for url in core_urls:
         print(url)
@@ -42,17 +43,29 @@ def main():
 
     core_categories = classify_core_categories(core_urls)
 
+    print('Categories:')
+    print(json.dumps(core_categories))
+    print()
+
+    process_all(core_categories)
+
+    print()
+    print("Time:")
+    end = time.time()
+    print(end - start)
+    print()
+
+def process_all(core_categories):
     delme = subprocess.run(['mktemp', '-d'], shell=False, stderr=subprocess.STDOUT, stdout=subprocess.PIPE).stdout.decode().strip()
-    category = 'main'
 
     finish_queue = queue.Queue()
     job_count = 0
     
     threads = []
 
-    for url in core_urls:
+    for url in core_categories:
         for category in core_categories[url]:
-            print(f'url: {url} category: {category}')
+            #if 'GBA2P' not in url: continue
             thread = Thread(target=thread_worker, args=(url, category, delme, finish_queue))
             thread.start()
             threads.append(thread)
@@ -61,11 +74,6 @@ def main():
 
     wait_jobs(finish_queue, job_count, 0)
 
-    print()
-    print("Time:")
-    end = time.time()
-    print(end - start)
-    print()
 
 def fetch_core_urls():
     core_urls = []
@@ -127,19 +135,23 @@ def thread_worker(core, category, delme, finish_queue):
     msg = ''
     try:
         msg = job(core, category, delme)
+    except KeyboardInterrupt as e:
+        msg = 'Skip'
     except Exception as e:
         msg = Exception(f'{type(e).__name__}({e}): {core} {category}')
     finish_queue.put(msg, False)
 
 def job(core, category, delme):
     error = None
-    for _ in range(5):
+    for i in range(10):
         try:
             return process_url(core, category, delme)
+        except KeyboardInterrupt as e:
+            raise e
         except Exception as e:
-            print(e)
+            print(f'WARNING! {core}:{category} failed {i}')
             error = e
-            time.sleep(0.5)
+            time.sleep(0.5 + random() * 5)
     raise error
 
 
@@ -165,15 +177,16 @@ late_install = {
 repo_regex = re.compile(r'^([a-zA-Z]+://)?github.com(:[0-9]+)?/([a-zA-Z0-9_-]*)/([a-zA-Z0-9_-]*)(/tree/([a-zA-Z0-9_-]+))?$')
 
 def process_url(core, category, delme):
+    print(f'{core} {category}')
     url = f'{core}.git'
     target = '.'
 
     if category in early_install:
-        return early_install[cateogory](url, target) or core
+        return early_install[category](url, target) or core
 
     name = path_tail('https://github.com/MiSTer-devel', core)
     name, branch = get_branch(name)
-    print(f'name: {name} branch: {branch}')
+
     path = f'{delme}/{name}'
 
     download_repository(path, url, branch)
@@ -199,6 +212,9 @@ def process_url(core, category, delme):
 def download_repository(path, url, branch):
     shutil.rmtree(path, ignore_errors=True)
     os.makedirs(path, exist_ok=True)
+
+    url = url.replace(f'/tree/{branch}', '')
+
     run('git init -q', path)
     run('git remote add origin ' + url, path)
     run('git -c protocol.version=2 fetch --depth=1 -q --no-tags --prune --no-recurse-submodules origin ' + branch, path)
@@ -207,9 +223,12 @@ def download_repository(path, url, branch):
 def run(command, path):
     result = subprocess.run(shlex.split(command), cwd=path, shell=False, stderr=subprocess.DEVNULL)
     if result.returncode != 0:
+        print(f'returncode {result.returncode} from: {command}')
         raise Exception(f'returncode {result.returncode} from: {command}')
 
 def wait_jobs(finish_queue, job_count, limit):
+    if job_count > limit:
+        print(f'Waiting #{limit - job_count} jobs.')
     while job_count > limit:
         while not finish_queue.empty():
             message = finish_queue.get(False)
