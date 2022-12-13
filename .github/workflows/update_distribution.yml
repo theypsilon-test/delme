@@ -1,0 +1,51 @@
+name: Update Distribution
+
+on:
+  schedule:
+  - cron:  "*/20 * * * *"
+  push:
+    branches:
+      - develop
+  workflow_dispatch:
+
+jobs:
+  update:
+    runs-on: ubuntu-20.04
+
+    steps:
+    - name: Install apt-get utilities
+      run: sudo apt-get install detox sharutils
+
+    - uses: actions/setup-python@v2
+      with:
+        python-version: '3.8'
+
+    - uses: actions/checkout@v2
+      with:
+        ref: develop
+
+    - name: Test Calculate Db
+      run: |
+        set -euo pipefail
+        cd .github/tests
+        ./test_calculate_db.py
+    - name: Download Distribution
+      run: ./.github/download_distribution.py .
+
+    - name: Commit Distribution
+      run: ./.github/commit_distribution.sh
+
+    - name: Calculate and Push Database
+      run: |
+        set -euo pipefail
+        git config --global user.email "theypsilon@gmail.com"
+        git config --global user.name "The CI/CD Bot"
+        export DB_ID=distribution_mister
+        export DB_URL=https://raw.githubusercontent.com/MiSTer-devel/Distribution_MiSTer/main/db.json.zip
+        export BASE_FILES_URL=https://raw.githubusercontent.com/MiSTer-devel/Distribution_MiSTer/%s/
+        export LATEST_ZIP_URL=https://github.com/MiSTer-devel/Distribution_MiSTer/archive/refs/heads/main.zip
+        export ZIPS_CONFIG=./.github/zips_config.json
+        export LINUX_GITHUB_REPOSITORY=MiSTer-devel/SD-Installer-Win64_MiSTer
+        ./.github/calculate_db.py
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

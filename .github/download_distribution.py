@@ -3,9 +3,6 @@
 import os
 import time
 import subprocess
-from dataclasses import dataclass
-from typing import List
-from subprocess import Popen
 from pathlib import Path
 import requests
 import re
@@ -17,28 +14,20 @@ import json
 import zipfile
 from random import random
 import xml.etree.ElementTree as ET
-
-@dataclass
-class Repo:
-    name: str
-    url: str
-    path: str
-    branch: str
-    result: int = None
-    process: Popen = None
-    files = None
-
-
-def is_standard_core(category):
-    return category in ["_Computer", "_Arcade", "_Console", "_Other", "_Utility"]
+import sys
+import traceback
 
 def main():
 
     start = time.time()
 
+    new_core_urls = new_cores()
     core_urls = fetch_core_urls()
     core_categories = classify_core_categories(core_urls)
-    new_core_urls = new_cores()
+
+    print('New Core URLs:')
+    print(json.dumps(new_core_urls))
+    print()
 
     print('Core URLs:')
     print(json.dumps(core_urls))
@@ -48,11 +37,15 @@ def main():
     print(json.dumps(core_categories))
     print()
 
-    print('New Core URLs:')
-    print(json.dumps(new_core_urls))
-    print()
+    target = 'delme'
+    if len(sys.argv) > 1:
+        target = sys.argv[1].strip()
 
-    process_all(core_categories, new_core_urls)
+    if 'delme' in target.lower():
+        shutil.rmtree(target, ignore_errors=True)
+        touch_folder(target)
+
+    process_all(core_categories, new_core_urls, target)
 
     print()
     print("Time:")
@@ -68,6 +61,22 @@ def fetch_core_urls():
     core_urls.extend(['user-content-mra-alternatives', 'https://github.com/MiSTer-devel/MRA-Alternatives_MiSTer'])
     core_urls.extend(most_cores())
     core_urls.extend(['user-content-arcade-cores', *arcade_cores()])
+    core_urls.extend(["user-cheats"])  # @TODO Modify this mapping whenever there is a new system with cheats
+    core_urls.extend(["fds|NES"])
+    core_urls.extend(["gb|GameBoy"])
+    core_urls.extend(["gba|GBA"])
+    core_urls.extend(["gbc|GameBoy"])
+    core_urls.extend(["gen|Genesis"])
+    core_urls.extend(["gg|SMS"])
+    core_urls.extend(["lnx|AtariLynx"])
+    core_urls.extend(["nes|NES"])
+    core_urls.extend(["pce|TGFX16"])
+    core_urls.extend(["pcd|TGFX16-CD"])
+    core_urls.extend(["psx|PSX"])
+    core_urls.extend(["scd|MegaCD"])
+    core_urls.extend(["sms|SMS"])
+    core_urls.extend(["snes|SNES"])
+    #core_urls.extend(["user-backup-cheats", "https://github.com/MiSTer-devel/Distribution_MiSTer/archive/refs/heads/main.zip"])  # Uncomment if user-cheats breaks (and comment user-cheats instead)
     core_urls.extend(["user-content-fonts", "https://github.com/MiSTer-devel/Fonts_MiSTer"])
     core_urls.extend(["user-content-folders"])
     core_urls.extend(["https://github.com/MiSTer-devel/Filters_MiSTer"])
@@ -84,7 +93,7 @@ def fetch_core_urls():
     core_urls.extend(["user-content-linux-binary", "https://github.com/MiSTer-devel/PDFViewer_MiSTer"])
     core_urls.extend(["user-content-empty-folder", "games/TGFX16-CD"])
     core_urls.extend(["user-content-gamecontrollerdb", "https://raw.githubusercontent.com/MiSTer-devel/Gamecontrollerdb_MiSTer/main/gamecontrollerdb.txt"])
-    core_urls.extend(["user-cheats", "https://gamehacking.org/mister/"])
+
     return core_urls
 
 def most_cores():
@@ -114,7 +123,6 @@ def new_cores():
     text = fetch_text('https://raw.githubusercontent.com/wiki/MiSTer-devel/Wiki_MiSTer/Cores.md')
     link_regex = re.compile(r'\[(.*)\]\((.*)\)')
 
-
     reading_cores_list = False
     reading_arcade_cores_list = False
     result = []
@@ -122,7 +130,7 @@ def new_cores():
     category = None
 
     for line in text.splitlines():
-
+        line = line.strip()
         lower = line.lower()
 
         if not reading_cores_list and not reading_arcade_cores_list:
@@ -136,14 +144,18 @@ def new_cores():
                 continue
 
             if line.startswith('##'):
-                header = line.replace('#', '').strip()
+                header = line.replace('#', '').strip().lower()
 
-                if header == 'Computers':
+                if 'computers' in header:
                     category = '_Computer'
-                elif header == 'Consoles':
+                elif 'consoles' in header:
                     category = '_Console'
-                elif header == 'Other Systems':
+                elif 'service' in header or 'utility' in header:
+                    category = '_Utility'
+                elif 'other' in header:
                     category = '_Other'
+                
+                continue
 
             if 'https://github.com/mister-devel/' not in lower:
                 continue
@@ -175,7 +187,7 @@ def new_cores():
             url = matches.group(2).strip()
             result.append({'name': name, 'url': url, 'category': '_Arcade'})
 
-    return result
+    return sorted(result, key=lambda element: element['category'].lower() + element['url'].lower())
 
 def arcade_cores():
     text = fetch_text('https://raw.githubusercontent.com/wiki/MiSTer-devel/Wiki_MiSTer/Arcade-Cores-List.md')
@@ -200,6 +212,7 @@ def classify_core_categories(core_urls):
         elif url == "user-content-zip-release": current_core_category = url
         elif url == "user-content-scripts": current_core_category = url
         elif url == "user-cheats": current_core_category = url
+        elif url == "user-backup-cheats": current_core_category = url
         elif url == "user-content-empty-folder": current_core_category = url
         elif url == "user-content-gamecontrollerdb": current_core_category = url
         elif url == "user-content-folders": current_core_category = url
@@ -216,42 +229,51 @@ def classify_core_categories(core_urls):
 
     return core_categories
 
+def is_standard_core(category):
+    return category.strip() in ["_Computer", "_Arcade", "_Console", "_Other", "_Utility"]
+
 # processors
 
-def process_all(core_categories, new_core_urls):
+def process_all(core_categories, new_core_urls, target):
     delme = subprocess.run(['mktemp', '-d'], shell=False, stderr=subprocess.STDOUT, stdout=subprocess.PIPE).stdout.decode().strip()
 
     finish_queue = queue.Queue()
     job_count = 0
 
-    cache = set()
-
-    for core in new_core_urls:
-        cache.add(core['url'])
-
-        thread = Thread(target=thread_worker, args=(lambda: process_core(core, delme), core['url'], finish_queue))
+    def process(fn, ctx):
+        nonlocal job_count
+        thread = Thread(target=thread_worker, args=(fn, ctx, finish_queue))
         thread.start()
         job_count += 1
         job_count = wait_jobs(finish_queue, job_count, 30)
+
+    cache = set()
+
+    print('--- CORES ---')
+    print()
+
+    for core in new_core_urls:
+        cache.add(core['url'])
+        process(lambda: process_core(core, delme, target), core['url'])
+
+    print()
+    print('--- EXTRA CONTENT ---')
+    print()
 
     for url in core_categories:
         if url in cache:
             continue
 
         for category in core_categories[url]:
-            thread = Thread(target=thread_worker, args=(lambda: process_url(url, category, delme), url, finish_queue))
-            thread.start()
-            job_count += 1
-            job_count = wait_jobs(finish_queue, job_count, 30)
+            process(lambda: process_url(url, category, delme, target), url)
 
     wait_jobs(finish_queue, job_count, 0)
 
-def process_core(core, delme):
+def process_core(core, delme, target):
     category = core['category']
     url = f'{core["url"]}.git'
-    target = '.'
 
-    name = path_tail('https://github.com/MiSTer-devel', core['url'])
+    name = path_tail('https://github.com/MiSTer-devel/', core['url'])
     name, branch = get_branch(name)
 
     path = f'{delme}/{name}'
@@ -272,14 +294,12 @@ def process_core(core, delme):
 
     raise SystemError('Ignored core: ' + core)
 
-def process_url(core, category, delme):
-    url = f'{core}.git'
-    target = '.'
+def process_url(core, category, delme, target):
 
     if category in early_install:
-        return early_install[category](url, target)
+        return early_install[category](core, target)
 
-    name = path_tail('https://github.com/MiSTer-devel', core)
+    name = path_tail('https://github.com/MiSTer-devel/', core)
     name, branch = get_branch(name)
 
     path = f'{delme}/{name}'
@@ -290,15 +310,17 @@ def process_url(core, category, delme):
     if len(branch) > 0:
         path = path + branch
 
+    url = f'{core}.git'
     download_repository(path, url, branch)
-
-    if core.lower() == 'https://github.com/mister-devel/atari800_mister':
-        return install_atari800(path, target, category, url)
 
     if category in late_install:
         return late_install[category](path, target, category, url)
 
-    raise SystemError('Ignored core: ' + core)
+    if category in core_install:
+        print(f'WARNING! Ignored core: {core}')
+        return
+
+    raise SystemError(f'Ignored core: {core} {category}')
 
 # installers
 
@@ -323,6 +345,7 @@ def install_arcade_core(path, target_dir, core):
 
         latest_release = get_latest_release(releases_dir, bin)
         if not is_rbf(latest_release):
+            print(f'{core["url"]}: {latest_release} is NOT a RBF file')
             continue
 
         print('BINARY: ' + bin)
@@ -344,6 +367,7 @@ def install_console_core(path, target_dir, core):
 
         latest_release = get_latest_release(releases_dir, bin)
         if not is_rbf(latest_release):
+            print(f'{core["url"]}: {latest_release} is NOT a RBF file')
             continue
 
         print('BINARY: ' + bin)
@@ -366,7 +390,7 @@ def install_console_core(path, target_dir, core):
             continue
 
         target_palette_folder = f'{target_dir}/games/{folder}/Palettes/'
-        copy_folder(source_palette_folder, target_palette_folder)
+        copy_folder(f'{path}/{source_palette_folder}', target_palette_folder)
         clean_palettes(target_palette_folder)
 
 def install_computer_core(path, target_dir, core):
@@ -382,6 +406,7 @@ def install_computer_core(path, target_dir, core):
 
         latest_release = get_latest_release(releases_dir, bin)
         if not is_rbf(latest_release):
+            print(f'{core["url"]}: {latest_release} is NOT a RBF file')
             continue
 
         print('BINARY: ' + bin)
@@ -428,6 +453,7 @@ def install_atari800(path, target_dir, core):
 
         latest_release = get_latest_release(releases_dir, bin)
         if not is_rbf(latest_release):
+            print(f'{core["url"]}: {latest_release} is NOT a RBF file')
             continue
 
         print('BINARY: ' + bin)
@@ -457,6 +483,7 @@ def install_other_core(path, target_dir, core):
 
         latest_release = get_latest_release(releases_dir, bin)
         if not is_rbf(latest_release):
+            print(f'{core["url"]}: {latest_release} is NOT a RBF file')
             continue
 
         print('BINARY: ' + bin)
@@ -526,18 +553,20 @@ def install_mra_alternatives(path, target_dir, category, url):
     copy_folder(f'{path}/_alternatives', f'{target_dir}/_Arcade/_alternatives')
 
 def install_fonts(path, target_dir, category, url):
-    print(f'Installing fonts {url}')
-
+    print(f'Installing Fonts {url}')
+    
+    touch_folder(f'{target_dir}/font')
     for font in list_fonts(path):
         copy_file(f'{path}/{font}', f'{target_dir}/font/')
 
 def install_folders(path, target_dir, category, url):
     ignore_folders = ['releases', 'matlab', 'samples']
     for folder in list_folders(path):
-        if folder.lower() in ignore_folders:
+        if folder.lower() in ignore_folders or folder[0] == '.':
             continue
-
-        copy_folder(folder, f'{path}/{Path(folder.name)}')
+        
+        print(f"Installing Folder '{folder}' from {url}")
+        copy_folder(f'{path}/{folder}', f'{target_dir}/{folder}')
 
 late_install = {
     "main": install_main_binary,
@@ -552,10 +581,12 @@ core_install = {
     "_Arcade": install_arcade_core,
     "_Computer": install_computer_core,
     "_Console": install_console_core,
+    "_Utility": install_other_core,
     "_Other": install_other_core,
 }
 
 def install_script(url, target_dir):
+    print('Script: ' + url)
     touch_folder(f'{target_dir}/Scripts')
     download_file(url, f'{target_dir}/Scripts/{Path(url).name}')
 
@@ -567,54 +598,48 @@ def install_gamecontrollerdb(url, target_dir):
     print(f"SDL Game Controller DB: {url}")
     download_file(url, f'{target_dir}/linux/gamecontrollerdb/{Path(url).name}')
 
-def install_cheats(url, target_dir):
-    #install_cheats_backup(target)
-    #return
-    cheat_mappings = {
-        "fds": "NES",
-        "gb": "GameBoy",
-        "gba": "GBA",
-        "gbc": "GameBoy",
-        "gen": "Genesis",
-        "gg": "SMS",
-        "lnx": "AtariLynx",
-        "nes": "NES",
-        "pce": "TGFX16",
-        "pcd": "TGFX16-CD",
-        "psx": "PSX",
-        "scd": "MegaCD",
-        "sms": "SMS",
-        "snes": "SNES",
-    }
+def install_cheats(mapping, target_dir):
+    page_url = "https://gamehacking.org/mister"
+
+    parts = mapping.split('|')
+    cheat_key = parts[0].strip()
+    cheat_platform = parts[1].strip()
 
     touch_folder(f'{target_dir}/Cheats')
+    cheat_zips = collect_cheat_zips(page_url)
 
-    cheat_urls = fetch_cheat_urls(url)
-    for cheat_key in cheat_urls:
-        cheat_platform = cheat_mappings[cheat_key]
-        cheat_zip = cheat_urls[cheat_key]
-        cheat_url = f'{url}/{cheat_zip}'
+    cheat_zip = next(cheat_zip for cheat_zip in cheat_zips if cheat_key in cheat_zip)
+    cheat_url = f'{page_url}/{cheat_zip}'
+    tmp_zip = f'/tmp/{cheat_key}{cheat_platform}.zip'
+    cheat_folder = f'{target_dir}/Cheats/{cheat_platform}'
 
-        touch_folder(f'{target_dir}/Cheats/{cheat_platform}')
-        download_file(cheat_url, f'/tmp/{cheat_platform}.zip')
-        unzip(f'/tmp/{cheat_platform}.zip', f'{target_dir}/Cheats/{cheat_platform}/')
+    if Path(cheat_folder).exists():
+        shutil.rmtree(cheat_folder, ignore_errors=True)
 
-def install_cheats_backup(target_dir):
-    download_file('https://github.com/MiSTer-devel/Distribution_MiSTer/archive/refs/heads/main.zip', '/tmp/old_main.zip')
+    print(f'cheat_keys: {cheat_key}, cheat_platform: {cheat_platform}, cheat_zip: {cheat_zip}, cheat_url: {cheat_url}')
+
+    touch_folder(cheat_folder)
+    download_file(cheat_url, tmp_zip)
+    unzip(tmp_zip, cheat_folder)
+
+def install_cheats_backup(url, target_dir):
+    tmp_zip = '/tmp/old_main.zip'
+    download_file(url, tmp_zip)
     touch_folder(f'{target_dir}/Cheats')
-    unzip('/tmp/old_main.zip', f'{target_dir}/Cheats/')
+    unzip(tmp_zip, f'{target_dir}/Cheats/')
 
 early_install = {
     'user-content-scripts': install_script,
     'user-content-empty-folder': install_empty_folder,
     'user-cheats': install_cheats,
+    'user-backup-cheats': install_cheats_backup,
     'user-content-gamecontrollerdb': install_gamecontrollerdb,
 }
 
 # mister files utils
 
 def mra_files(folder):
-    return [without_folder(folder, f) for f in list_files(folder) if Path(f).suffix.lower() == '.mra']
+    return [without_folder(folder, f) for f in list_files(folder, recursive=False) if Path(f).suffix.lower() == '.mra']
 
 def is_arcade_core(path):
     return Path(path).name.lower().startswith('arcade-')
@@ -623,12 +648,13 @@ def is_rbf(path):
     return Path(path).suffix.lower() == '.rbf'
 
 def get_latest_release(folder, bin):
-    releases = sorted([Path(f).name for f in list_files(folder) if Path(bin).name in f])
+    files = [without_folder(folder, f) for f in list_files(folder, recursive=False)]
+    releases = sorted([f for f in files if bin in f and remove_date(f) != f])
     return releases[-1]
 
 def uniq_files_with_stripped_date(folder):
     result = []
-    for f in list_files(folder):
+    for f in list_files(folder, recursive=False):
         f = without_folder(folder, str(Path(f).with_suffix('')))
 
         no_date = remove_date(f)
@@ -640,7 +666,7 @@ def uniq_files_with_stripped_date(folder):
     return result
 
 def clean_palettes(palette_folder):
-    for file in list_files(palette_folder):
+    for file in list_files(palette_folder, recursive=True):
         path = Path(file)
         if path.suffix.lower() in ['.pal', '.gbp']:
             continue
@@ -672,13 +698,13 @@ def is_mra(file):
     return Path(file).suffix.lower() == '.mra'
 
 def files_with_no_date(folder):
-    return [without_folder(folder, f) for f in list_files(folder) if f == remove_date(f)]
+    return [without_folder(folder, f) for f in list_files(folder, recursive=False) if f == remove_date(f)]
 
 def list_readmes(folder):
-    return [without_folder(folder, f) for f in list_files(folder) if f.lower().startswith('readme.')]
+    return [without_folder(folder, f) for f in list_files(folder, recursive=False) if f.lower().startswith('readme.')]
 
 def mgl_folders(releases_dir):
-    extracts = [extract_mgl_setname(f) for f in list_files(releases_dir) if Path(f).suffix.lower() == '.mgl']
+    extracts = [extract_mgl_setname(f) for f in list_files(releases_dir, recursive=False) if Path(f).suffix.lower() == '.mgl']
     return [x for x in extracts if x is not None]
 
 def extract_mgl_setname(mgl):
@@ -700,15 +726,15 @@ def remove_date(path):
     return path
 
 def without_folder(folder, f):
-    return f.replace(f'{folder}/', '').replace(folder, '')
+    return f.replace(f'{folder}/', '').replace(folder, '').strip()
 
 def is_empty_release(bin):
     return bin == '' or bin is None or len(bin) == 0
 
 def list_fonts(path):
-    return [Path(f).name for f in list_files(path) if Path(f).suffix.lower() == '.pf']
+    return [Path(f).name for f in list_files(path, recursive=True) if Path(f).suffix.lower() == '.pf']
 
-def fetch_cheat_urls(url):
+def collect_cheat_zips(url):
     r = requests.get(url, cookies={'challenge': 'BitMitigate.com'})
     if r.status_code != 200:
         raise Exception(f'Request to {url} failed')
@@ -719,7 +745,7 @@ def fetch_cheat_urls(url):
 
 def path_tail(folder, f):
     pos = f.find(folder)
-    return f[pos + len(folder) + 1:]
+    return f[pos + len(folder):]
 
 def get_branch(name):
     pos = name.find('/tree/')
@@ -727,25 +753,17 @@ def get_branch(name):
         return name, ""
     return name[0:pos], name[pos + len('/tree/'):]
 
-def list_repository_files(files, path):
-    for content_folder in ['releases', 'Palette', 'Palettes', 'palettes']:
-        folder = '%s/%s' % (path, content_folder)
-        if not Path(folder).exists():
-            continue
-
-        files[content_folder] = list(list_files(folder))
-
-def list_files(directory):
+def list_files(directory, recursive):
     for f in os.scandir(directory):
-        if f.is_dir():
-            yield from list_files(f.path)
+        if f.is_dir() and recursive:
+            yield from list_files(f.path, recursive)
         elif f.is_file():
             yield f.path
 
 def list_folders(directory):
     for f in os.scandir(directory):
         if f.is_dir():
-            yield (f.path)
+            yield (f.path.replace(directory + '/', '').replace(directory, ''))
 
 def copy_file(source, target):
     touch_folder(Path(target).parent)
@@ -758,7 +776,6 @@ def touch_folder(folder):
     Path(folder).mkdir(parents=True, exist_ok=True)
 
 def unzip(zip_file, target_dir):
-    print(f"unzip {zip_file} to {target_dir}/")
     with zipfile.ZipFile(zip_file, 'r') as zip_ref:
         zip_ref.extractall(target_dir)
 
@@ -785,7 +802,8 @@ def job(fn, ctx):
         try:
             return fn()
         except Exception as e:
-            print(f'WARNING! {ctx} failed {i}')
+            print(f'Error on "{ctx}" attempt {i}')
+            traceback.print_exc()
             error = e
             time.sleep(0.5 + random() * 5)
     raise error
@@ -811,8 +829,9 @@ def fetch_text(url):
     return r.text
 
 def download_repository(path, url, branch):
-    shutil.rmtree(path, ignore_errors=True)
-    os.makedirs(path, exist_ok=True)
+    if Path(path).exists():
+        shutil.rmtree(path, ignore_errors=True)
+    os.makedirs(path)
 
     url = url.replace(f'/tree/{branch}', '')
 
@@ -822,8 +841,12 @@ def download_repository(path, url, branch):
     run('git checkout -qf FETCH_HEAD', path)
 
 def download_file(url, target):
-    text = fetch_text(url)
-    Path(target).write_text(text)
+    r = requests.get(url, allow_redirects=True)
+    if r.status_code != 200:
+        raise Exception(f'Request to {url} failed')
+    
+    with open(target, 'wb') as f:
+        f.write(r.content)
 
 # execution utilities
 
