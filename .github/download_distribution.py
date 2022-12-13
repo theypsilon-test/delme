@@ -271,7 +271,6 @@ def process_all(core_categories, new_core_urls, target):
 
 def process_core(core, delme, target):
     category = core['category']
-    url = f'{core["url"]}.git'
 
     name = path_tail('https://github.com/MiSTer-devel/', core['url'])
     name, branch = get_branch(name)
@@ -284,6 +283,7 @@ def process_core(core, delme, target):
     if len(branch) > 0:
         path = path + branch
 
+    url = f'{core["url"].replace("/tree/" + branch, "")}.git'
     download_repository(path, url, branch)
 
     if core['url'].lower() == 'https://github.com/mister-devel/atari800_mister':
@@ -310,11 +310,11 @@ def process_url(core, category, delme, target):
     if len(branch) > 0:
         path = path + branch
 
-    url = f'{core}.git'
+    url = f'{core.replace("/tree/" + branch, "")}.git'
     download_repository(path, url, branch)
 
     if category in late_install:
-        return late_install[category](path, target, category, url)
+        return late_install[category](path, target, category, core)
 
     if category in core_install:
         print(f'WARNING! Ignored core: {core}')
@@ -833,12 +833,8 @@ def download_repository(path, url, branch):
         shutil.rmtree(path, ignore_errors=True)
     os.makedirs(path)
 
-    url = url.replace(f'/tree/{branch}', '')
-
-    run('git init -q', path)
-    run('git remote add origin ' + url, path)
-    run('git -c protocol.version=2 fetch --depth=1 -q --no-tags --prune --no-recurse-submodules origin ' + branch, path)
-    run('git checkout -qf FETCH_HEAD', path)
+    minus_b = '' if len(branch) == 0 else f'-b {branch}'
+    run(f'git -c protocol.version=2 clone -q --no-tags --no-recurse-submodules --depth=1 {minus_b} {url} {path}')
 
 def download_file(url, target):
     r = requests.get(url, allow_redirects=True)
@@ -850,8 +846,8 @@ def download_file(url, target):
 
 # execution utilities
 
-def run(command, path):
-    result = subprocess.run(shlex.split(command), cwd=path, shell=False, stderr=subprocess.STDOUT)
+def run(command, cwd=None):
+    result = subprocess.run(shlex.split(command), cwd=cwd, shell=False, stderr=subprocess.STDOUT)
     if result.returncode == -2:
         raise KeyboardInterrupt()
     elif result.returncode != 0:
