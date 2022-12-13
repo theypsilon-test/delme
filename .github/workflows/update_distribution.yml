@@ -47,3 +47,4 @@ jobs:
         ./.github/calculate_db.py
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        CHECK_TEST: false
