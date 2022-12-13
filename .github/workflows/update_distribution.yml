@@ -16,9 +16,9 @@ jobs:
     - name: Install apt-get utilities
       run: sudo apt-get install detox sharutils
 
-    - uses: actions/setup-python@v2
+    - uses: actions/checkout@v3
       with:
-        python-version: '3.8'
+        ref: develop
 
     - uses: actions/setup-python@v4
       with:
